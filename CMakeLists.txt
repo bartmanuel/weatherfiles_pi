@@ -182,6 +182,7 @@ add_definitions(-DUSE_S57)
 
 set(SRCS src/tpControlDialogDef.cpp src/tpControlDialogImpl.cpp src/tpicons.cpp
          src/tpJSON.cpp src/weatherfiles_pi.cpp src/tpUtils.cpp
+         src/wf_api.cpp
 )
 
 set(HDRS
@@ -192,6 +193,7 @@ set(HDRS
     include/tpIconCombo.h
     include/tpJSON.h
     include/tpUtils.h
+    include/wf_api.h
 )
 
 add_definitions(-DPLUGIN_USE_SVG)

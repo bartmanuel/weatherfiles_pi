@@ -4,7 +4,11 @@ version: 2.1
 parameters:
     run_workflow_deploy:
         type: boolean
-        default: true
+        # Build-only until Cloudsmith publishing is set up (deferred operator
+        # task: CLOUDSMITH_API_KEY + Apple signing). Every `deploy-code` step is
+        # gated on this, so `false` skips all upload steps and CI just compiles.
+        # Flip back to `true` once the package repo + signing creds exist.
+        default: false
 
 std-filters: &std-filters
     filters:
@@ -18,53 +22,58 @@ std-filters: &std-filters
 workflows:
     build_all:
         jobs:
-## --------------------
-## OpenCPN 5.8 Plugins
-## ----------------------
-          - build-android-arm64:
-              <<: *std-filters
-          - build-android-armhf:
-                <<: *std-filters
-          - build-flatpak-aarch64-2208:
-              <<: *std-filters
-          - build-flatpak-x86-2208:
-              <<: *std-filters
-          - build-flatpak-aarch64-2408:
-              <<: *std-filters
-          - build-flatpak-x86-2408:
-              <<: *std-filters
-          - build-msvc-wx32-2022:
-              <<: *std-filters
-          - build-debian-armhf-13-trixie:
-              <<: *std-filters
-          - build-debian-arm64-13-trixie:
-              <<: *std-filters
-          - build-debian-x86_64-13-trixie:
-              <<: *std-filters
-          - build-debian-arm64-12-bookworm:
-              <<: *std-filters
-          - build-debian-armhf-12-bookworm:
-              <<: *std-filters
+## --------------------------------------------------------------------------
+## Initial CI bring-up (2026-05): trimmed to the three mainstream desktop
+## targets so the first runs are fast/cheap and exercise the platforms our
+## users actually run (Linux x86_64, macOS-universal, Windows wx32). The full
+## platform matrix below is commented out — uncomment to restore once the
+## plugin builds clean and we're ready to publish all targets. Every job
+## definition further down is left intact; only this run-list is trimmed.
+## --------------------------------------------------------------------------
           - build-debian-x86_64-12-bookworm:
-              <<: *std-filters
-          - build-debian-armhf-11-bullseye:
-              <<: *std-filters
-          - build-debian-arm64-11-bullseye:
-              <<: *std-filters
-          - build-debian-x86_64-11-bullseye:
-             <<: *std-filters
-## KEEP needed for Jammy with wx32
-          - build-ubuntu-x86_64-2204-jammy:
               <<: *std-filters
           - build-macos-universal:
               <<: *std-filters
-
+          - build-msvc-wx32-2022:
+              <<: *std-filters
+## --- full matrix (restore later) ------------------------------------------
+#          - build-android-arm64:
+#              <<: *std-filters
+#          - build-android-armhf:
+#                <<: *std-filters
+#          - build-flatpak-aarch64-2208:
+#              <<: *std-filters
+#          - build-flatpak-x86-2208:
+#              <<: *std-filters
+#          - build-flatpak-aarch64-2408:
+#              <<: *std-filters
+#          - build-flatpak-x86-2408:
+#              <<: *std-filters
+#          - build-debian-armhf-13-trixie:
+#              <<: *std-filters
+#          - build-debian-arm64-13-trixie:
+#              <<: *std-filters
+#          - build-debian-x86_64-13-trixie:
+#              <<: *std-filters
+#          - build-debian-arm64-12-bookworm:
+#              <<: *std-filters
+#          - build-debian-armhf-12-bookworm:
+#              <<: *std-filters
+#          - build-debian-armhf-11-bullseye:
+#              <<: *std-filters
+#          - build-debian-arm64-11-bullseye:
+#              <<: *std-filters
+#          - build-debian-x86_64-11-bullseye:
+#             <<: *std-filters
+## KEEP needed for Jammy with wx32
+#          - build-ubuntu-x86_64-2204-jammy:
+#              <<: *std-filters
 ## -------------------------------------------
 ## OpenCPN 5.6.2 Plugins  Frozen - 28/05/2023
 ## ------------------------------------------
 ## Circleci will not build for macos 11 so removed - 18/10/2023
-          - build-msvc-2022:
-              <<: *std-filters
+#          - build-msvc-2022:
+#              <<: *std-filters
 
 orbs:
     cloudsmith: cloudsmith/cloudsmith@1.0.5

@@ -18,9 +18,10 @@ set -euo pipefail
 BUILD="${1:-build}"
 cd "$BUILD"
 
-# The CPack tarball, ignoring any importable tarball from a previous run.
-TARBALL="$(ls -1 *.tar.gz 2>/dev/null | grep -v -- '-import\.tar\.gz' | head -1 || true)"
-META="$(ls -1 *.xml 2>/dev/null | head -1 || true)"
+# Newest CPack tarball + metadata, ignoring any importable tarball from a
+# previous run (-t = sort by mtime so a stale artifact is never picked).
+TARBALL="$(ls -1t *.tar.gz 2>/dev/null | grep -v -- '-import\.tar\.gz' | head -1 || true)"
+META="$(ls -1t *.xml 2>/dev/null | head -1 || true)"
 [ -n "$TARBALL" ] || { echo "make-importable: no CPack tarball in $BUILD" >&2; exit 1; }
 [ -n "$META" ]    || { echo "make-importable: no metadata .xml in $BUILD" >&2; exit 1; }
 

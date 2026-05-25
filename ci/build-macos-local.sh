@@ -21,6 +21,15 @@ here=$(cd "$(dirname "$0")"; pwd)
 root=$(cd "$here/.."; pwd)
 cd "$root"
 
+# Match the CircleCI build-macos-universal job's environment so the package name
+# resolves identically. Without OCPN_TARGET, PluginConfigure.cmake builds the
+# package name from the raw multi-arch string "arm64;x86_64" — and the ';' is a
+# cmake list separator, which breaks configure_file() for the metadata xml: no
+# metadata.xml is written, so OpenCPN's import fails with "Error extracting
+# metadata from tarball". With OCPN_TARGET=macos it uses the dash-joined arch.
+export OCPN_TARGET="${OCPN_TARGET:-macos}"
+export WX_VER="${WX_VER:-32}"
+
 if [ "${1:-}" = "--setup" ]; then
   command -v cmake >/dev/null || brew install cmake
   command -v wget  >/dev/null || brew install wget

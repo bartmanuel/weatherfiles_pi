@@ -59,10 +59,14 @@ else ()
     )
     string(FIND ${GIT_STATUS} "..." START_TRACKED)
     if (NOT START_TRACKED EQUAL -1)
-      string(FIND ${GIT_STATUS} "/" END_TRACKED)
+      # GIT_STATUS begins with "## <local>...<remote>/<branch>". The remote name
+      # is between "..." and the first "/" AFTER it. Search the tail past "..."
+      # — searching the whole string would match a slash in the local branch
+      # name (e.g. feat/x), giving a negative length and crashing string().
       math(EXPR START_TRACKED "${START_TRACKED}+3")
-      math(EXPR END_TRACKED "${END_TRACKED}-${START_TRACKED}")
-      string(SUBSTRING ${GIT_STATUS} ${START_TRACKED} ${END_TRACKED}
+      string(SUBSTRING ${GIT_STATUS} ${START_TRACKED} -1 GIT_TRACKED_TAIL)
+      string(FIND ${GIT_TRACKED_TAIL} "/" END_TRACKED)
+      string(SUBSTRING ${GIT_TRACKED_TAIL} 0 ${END_TRACKED}
                        GIT_REPOSITORY_REMOTE
       )
       message(STATUS "${CMLOC}GIT_REPOSITORY_REMOTE: ${GIT_REPOSITORY_REMOTE}")

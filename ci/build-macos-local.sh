@@ -27,13 +27,22 @@ if [ "${1:-}" = "--setup" ]; then
   # Installs deps, downloads prebuilt universal wx into /usr/local (sudo), and
   # runs the universal cmake configure; stops after configure ($CI is unset).
   bash ci/circleci-build-macos-universal.sh
+  # The CI script doesn't check cmake's exit code, so a failed configure looks
+  # like success. Verify the Makefile was actually generated.
+  if [ ! -f build/Makefile ]; then
+    echo >&2
+    echo "ERROR: cmake configure did not produce build/Makefile." >&2
+    echo "Last CMake errors from build/build.log:" >&2
+    grep -i -A5 "CMake Error" build/build.log >&2 || true
+    exit 1
+  fi
   echo
   echo "Setup complete. Build with:  ci/build-macos-local.sh"
   exit 0
 fi
 
-if [ ! -d build ]; then
-  echo "No build/ directory - run '$0 --setup' first." >&2
+if [ ! -f build/Makefile ]; then
+  echo "build/ is not configured (no Makefile) - run '$0 --setup' first." >&2
   exit 1
 fi
 

@@ -1,0 +1,273 @@
++ export MACOSX_DEPLOYMENT_TARGET=10.10
++ MACOSX_DEPLOYMENT_TARGET=10.10
++ brew list --versions libexif
++ brew update-reset
+==> Fetching /opt/homebrew...
+From https://github.com/Homebrew/brew
+ * [new branch]            bundle-check-link-status -> origin/bundle-check-link-status
+ * [new branch]            cask-linux-ci       -> origin/cask-linux-ci
+ * [new branch]            copilot/implement-discussed-features -> origin/copilot/implement-discussed-features
+ * [new branch]            fix-upgrade-ask-manifests -> origin/fix-upgrade-ask-manifests
+ * [new branch]            install-steps-cask-audit -> origin/install-steps-cask-audit
+   3fa656a8d1..10a163ac12  master              -> origin/master
+ * [new branch]            move-to-ubuntu24.04 -> origin/move-to-ubuntu24.04
+ * [new branch]            pr-22290            -> origin/pr-22290
+ * [new branch]            quarantine-ffi      -> origin/quarantine-ffi
+
+==> Resetting /opt/homebrew...
+Reset branch 'stable'
+rm: /opt/homebrew/.git/describe-cache/23c491e5bc9bfef218356c54e3b8971fbcc9ff13: Permission denied
+rm: /opt/homebrew/.git/describe-cache: Directory not empty
+
+==> Fetching /opt/homebrew/Library/Taps/supabase/homebrew-tap...
+From https://github.com/supabase/homebrew-tap
+ * [new branch]      copilot/fix-dbdev-arm-binary -> origin/copilot/fix-dbdev-arm-binary
+
+==> Resetting /opt/homebrew/Library/Taps/supabase/homebrew-tap...
+Reset branch 'main'
+branch 'main' set up to track 'origin/main'.
+Your branch is up to date with 'origin/main'.
+
++++ dirname ci/circleci-build-macos-universal.sh
+++ cd ci
+++ pwd
++ here=/Users/bartmanuel/Projects/weatherfiles_pi/ci
+++ sed /#/d
++ for pkg in '$(sed '\''/#/d'\'' < $here/../build-deps/macos-deps)'
++ brew list --versions cmake
+cmake 4.3.2
++ brew link --overwrite cmake
+Warning: Already linked: /opt/homebrew/Cellar/cmake/4.3.2
+To relink, run:
+  brew unlink cmake && brew link cmake
++ for pkg in '$(sed '\''/#/d'\'' < $here/../build-deps/macos-deps)'
++ brew list --versions gettext
+gettext 1.0
++ brew link --overwrite gettext
+Warning: Already linked: /opt/homebrew/Cellar/gettext/1.0
+To relink, run:
+  brew unlink gettext && brew link gettext
++ for pkg in '$(sed '\''/#/d'\'' < $here/../build-deps/macos-deps)'
++ brew list --versions libexif
++ brew install libexif
+Inspect the formula dependency plan before installing with `brew install --ask`.
+Enable ask mode by setting `HOMEBREW_ASK=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Fetching downloads for: libexif
+✔︎ Bottle Manifest libexif (0.6.26)
+✔︎ Bottle libexif (0.6.26)
+==> Pouring libexif--0.6.26.arm64_tahoe.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libexif/0.6.26: 63 files, 3.8MB
+==> Running `brew cleanup libexif`...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
++ brew link --overwrite libexif
+Warning: Already linked: /opt/homebrew/Cellar/libexif/0.6.26
+To relink, run:
+  brew unlink libexif && brew link libexif
++ for pkg in '$(sed '\''/#/d'\'' < $here/../build-deps/macos-deps)'
++ brew list --versions python
+python@3.14 3.14.0_1
++ brew link --overwrite python
+Warning: Already linked: /opt/homebrew/Cellar/python@3.14/3.14.0_1
+To relink, run:
+  brew unlink python@3.14 && brew link python@3.14
++ for pkg in '$(sed '\''/#/d'\'' < $here/../build-deps/macos-deps)'
++ brew list --versions wget
+wget 1.25.0
++ brew link --overwrite wget
+Warning: Already linked: /opt/homebrew/Cellar/wget/1.25.0
+To relink, run:
+  brew unlink wget && brew link wget
++ for pkg in '$(sed '\''/#/d'\'' < $here/../build-deps/macos-deps)'
++ brew list --versions openssl@3
+openssl@3 3.6.1
++ brew link --overwrite openssl@3
+Warning: Already linked: /opt/homebrew/Cellar/openssl@3/3.6.1
+To relink, run:
+  brew unlink openssl@3 && brew link openssl@3
++ /usr/bin/python3 -m venv /Users/bartmanuel/cs-venv
++ wget -q https://dl.cloudsmith.io/public/nohal/opencpn-plugins/raw/files/macos_deps_universal.tar.xz -O /tmp/macos_deps_universal.tar.xz
++ sudo tar -C /usr/local -xJf /tmp/macos_deps_universal.tar.xz
++ export OPENSSL_ROOT_DIR=/usr/local
++ OPENSSL_ROOT_DIR=/usr/local
++ cd build
++ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX= -DCMAKE_OSX_DEPLOYMENT_TARGET=10.10 '-DOCPN_TARGET_TUPLE=darwin-wx32;10;universal' '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64' ..
+-- CMakeLists: USE_GL: ON
+-- CMakeLists: Build type: Release
+-- The C compiler identification is AppleClang 21.0.0.21000101
+-- The CXX compiler identification is AppleClang 21.0.0.21000101
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- PluginSetup: GIT_REPOSITORY_SERVER not found setting to: github.com
+-- PluginSetup: PROJECT_VERSION: 0.1.0.0
+-- PluginSetup: WeatherFiles Version: 0.1.0.0
+-- PluginSetup: OPCN_FLATPAK: 
+-- PluginSetup: OCPN_FLATPAK_CONFIG: , OCPN_FLATPAK_BUILD: , UNIX: 1
+-- PluginSetup: ARCH: arm64;x86_64
+-- PluginSetup: COMPOUND_ARCH_DASH: arm64-x86_64
+-- PluginSetup: PKG_TARGET: darwin, PKG_TARGET_VERSION: 26.5
+-- PluginSetup: OCPN_TARGET: 
+-- PluginSetup: PKG_TARGET: darwin
+-- PluginSetup: CMAKE version: 4.3.2
+-- PluginConfigure: *** Staging to build weatherfiles_pi ***
+-- PluginConfigure: CIRCLECI: , Env CIRCLECI: 
+-- PluginConfigure: TRAVIS: , Env TRAVIS: 
+CMake Error at cmake/PluginConfigure.cmake:65 (string):
+  string end index: -19 should be -1 or greater
+Call Stack (most recent call first):
+  CMakeLists.txt:172 (include)
+
+
+-- PluginConfigure: GIT_REPOSITORY_REMOTE: 
+-- PluginConfigure: Command error: usage: git remote get-url [--push] [--all] <name>
+
+    --[no-]push           query push URLs rather than fetch URLs
+    --[no-]all            return all URLs
+
+
+-- PluginConfigure: Using default repository
+-- PluginConfigure: GIT_REPOSITORY: 
+-- PluginConfigure: Git Branch: "feat/weatherfiles-ui"
+-- PluginConfigure: Git Tag: ""
+-- PluginConfigure: GIT_BRANCH_OR_TAG: branch
+-- PluginConfigure: GIT_REPOSITORY_ITEM: feat/weatherfiles-ui
+-- PluginConfigure: CLOUDSMITH_BASE_REPOSITORY: weatherfiles
+-- PluginConfigure: PLUGIN_EXTRA_VERSION_VARS: Not Found
+-- PluginConfigure: PLUGIN_EXTRA_FORMBUILDER_HEADERS: PLUGIN_EXTRA_FORMBUILDER_HEADERS-NOTFOUND
+-- PluginConfigure: PLUGIN_EXTRA_FORMBUILDER_HEADERS: Not found
+-- PluginConfigure: ENV BUILD_GTK2: 
+-- PluginConfigure: ENV BUILD_GTK3: 
+-- PluginConfigure: BUILD_ENV: , BUILD_ENV_TEMP , OCPN_TARGET: 
+-- PluginConfigure: Doing build_gtk3: 
+-- PluginConfigure: PKG_TARGET_GTK: 
+-- PluginConfigure: ARCH: arm64;x86_64
+-- PluginConfigure: PKG_NVR: weatherfiles_pi-0.1.0.0, PKG_TARGET: darwin, ARCH: arm64;x86_64, PKG_TARGET_WX_VER: , PKG_BUILD_GTK: , PKG_TARGET_VERSION: 26.5, OCPN_TARGET: 
+-- PluginConfigure: PACKAGING_NAME: weatherfiles_pi-0.1.0.0-darwin-26.5
+-- PluginConfigure: PACKAGING_NAME_XML: weatherfiles_pi-0.1.0.0-darwin-arm64;x86_64-26.5
+-- PluginConfigure: PKG_TARGET_FULL: darwin
+-- PluginConfigure: PKG_BUILD_TARGET: darwin
+-- PluginConfigure: PKG_BUILD_GTK: 
+-- PluginConfigure: PKG_BUILT_WITH_GTK: 
+-- PluginConfigure: *.in files generated in /Users/bartmanuel/Projects/weatherfiles_pi/build
+CMake Warning (dev) at cmake/PluginConfigure.cmake:441 (configure_file):
+  configure_file called with unknown argument(s):
+
+   x86_64-26.5.xml
+
+Call Stack (most recent call first):
+  CMakeLists.txt:172 (include)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- PluginConfigure: Finding package OpenGL
+-- Found OpenGL: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+-- PluginConfigure: Found OpenGL...
+-- PluginConfigure:     Lib: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+-- PluginConfigure:     Include: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+-- PluginConfigure:     Revised GL Lib: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
+-- PluginConfigure: wxWidgets_Version: 
+-- PluginConfigure: wxWidgets components: base;core;net;xml;html;adv;aui;gl
+-- Found wxWidgets: -L/usr/local/lib;;;-framework IOKit;-framework Carbon;-framework Cocoa;-framework QuartzCore;-framework AudioToolbox;-framework System;-framework OpenGL;-lwx_baseu-3.2;-lwx_osx_cocoau_core-3.2;-lwx_baseu_net-3.2;-lwx_baseu_xml-3.2;-lwx_osx_cocoau_html-3.2;-lwx_osx_cocoau_aui-3.2;-lwx_osx_cocoau_gl-3.2 (found version "3.2.4")
+-- PluginConfigure: Found wxWidgets...
+-- PluginConfigure:  wxWidgets Include: /usr/local/lib/wx/include/osx_cocoa-unicode-3.2;/usr/local/include/wx-3.2
+-- PluginConfigure:  wxWidgets Libraries: -L/usr/local/lib;;;-framework IOKit;-framework Carbon;-framework Cocoa;-framework QuartzCore;-framework AudioToolbox;-framework System;-framework OpenGL;-lwx_baseu-3.2;-lwx_osx_cocoau_core-3.2;-lwx_baseu_net-3.2;-lwx_baseu_xml-3.2;-lwx_osx_cocoau_html-3.2;-lwx_osx_cocoau_aui-3.2;-lwx_osx_cocoau_gl-3.2
+-- PluginConfigure:  Revised wxWidgets Libraries: -L/usr/local/lib;-framework IOKit;-framework Carbon;-framework Cocoa;-framework QuartzCore;-framework AudioToolbox;-framework System;-framework OpenGL;-lwx_baseu-3.2;-lwx_osx_cocoau_core-3.2;-lwx_baseu_net-3.2;-lwx_baseu_xml-3.2;-lwx_osx_cocoau_html-3.2;-lwx_osx_cocoau_aui-3.2;-lwx_osx_cocoau_gl-3.2
+-- Found Gettext: /opt/homebrew/bin/msgmerge (found version "1.0")
+-- CMakeLists: Using JSON Schema validation - warning this changes the 'flavour' of the executable and it may not be compatible with OpenCPN
+-- CMakeLists: Adding JSON Schema validation
+-- CMakeLists: Adding target link libraries to weatherfiles_pi
+-- Using bundled tinyxml
+CMake Deprecation Warning at opencpn-libs/jsonlib/CMakeLists.txt:8 (cmake_minimum_required):
+  Compatibility with CMake < 3.10 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
+  to tell CMake that the project requires at least <min> but has been updated
+  to work with policies introduced by <max> or earlier.
+
+
+-- Using standard OpenGL (GL/gl.h)
+-- Using system glu library
+-- PluginInstall: *** Will install to   ***
+-- PluginInstall: Adjusting library paths
+-- Found ZLIB: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/libz.tbd (found version "1.2.12")
+-- PluginInstall: Making directory /Users/bartmanuel/Projects/weatherfiles_pi/build/data/
+-- PluginInstall: Globbing for data files in /Users/bartmanuel/Projects/weatherfiles_pi/data/*
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/license.txt to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/weatherfiles-toggled.png to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/weatherfiles-toggled.svg to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/weatherfiles.png to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/weatherfiles.svg to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/weatherfilesgrey.png to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Copying /Users/bartmanuel/Projects/weatherfiles_pi/data/weatherfilesgrey.svg to /Users/bartmanuel/Projects/weatherfiles_pi/build/data
+-- PluginInstall: Installing target to OpenCPN.app/Contents/PlugIns
+-- PluginLocalization: Starting POTFILE generation
+-- PluginLocalization: Checking file: /Users/bartmanuel/Projects/weatherfiles_pi/po/weatherfiles_pi.pot
+-- PluginLocalization: Found: /Users/bartmanuel/Projects/weatherfiles_pi/po/weatherfiles_pi.pot
+-- PluginLocalization: Creating Resources directory
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/ar_SA.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/bg_BG.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/ca_ES.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/cs_CZ.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/da_DK.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/de_DE.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/el_GR.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/en_GB.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/es_ES.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/et_EE.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/fi_FI.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/fil_PH.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/fr_FR.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/gl_ES.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/he_IL.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/hi_IN.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/hu_HU.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/id_ID.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/is_IS.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/it_IT.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/ja_JP.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/ko_KR.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/mr_IN.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/nb_NO.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/nl_NL.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/pl_PL.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/pt_BR.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/pt_PT.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/ro_RO.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/ru_RU.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/sv_SE.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/th_TH.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/tr_TR.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/vi_VN.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/zh_CN.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginLocalization: Install language files to: OpenCPN.app/Contents/Resources/zh_TW.lproj renamed to: opencpn-weatherfiles_pi.mo
+-- PluginPackage: Package: OCPN_FLATPAK_CONFIG: 
+-- PluginPackage: CPACK_PACKAGE_NAME: 
+-- PluginPackage: Stripping debug information from module
+-- PluginPackage: CPACK_PACKAGE_FILE_NAME: weatherfiles_pi-0.1.0.0-darwin-arm64;x86_64-26.5
+-- PluginPackage: CPACK_PACKAGE_VERSION: 0.1.0.0-ov58, PACKAGE_VERSION 0.1.0.0, CPACK_PACKAGE_FILE_NAME: weatherfiles_pi-0.1.0.0-darwin-arm64;x86_64-26.5
+-- PluginPackage: PROJECT_SOURCE_DIR: /Users/bartmanuel/Projects/weatherfiles_pi, CPACK_PROJECT_CONFIG_FILE: /Users/bartmanuel/Projects/weatherfiles_pi/build/PluginCPackOptions.cmake
+-- CMakeLists: include directories: 
+-- CMakeLists: dir='/Users/bartmanuel/Projects/weatherfiles_pi/ocpninclude'
+-- CMakeLists: dir='/Users/bartmanuel/Projects/weatherfiles_pi/include'
+-- CMakeLists: dir='/Users/bartmanuel/Projects/weatherfiles_pi/build/CMakeFiles/include'
+-- CMakeLists: dir='/Users/bartmanuel/Projects/weatherfiles_pi/include'
+-- CMakeLists: dir='/Users/bartmanuel/Projects/weatherfiles_pi/src'
+-- CMakeLists: dir='/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework'
+-- CMakeLists: dir='/usr/local/lib/wx/include/osx_cocoa-unicode-3.2'
+-- CMakeLists: dir='/usr/local/include/wx-3.2'
+-- Configuring incomplete, errors occurred!
++ [[ -z '' ]]
++ echo '$CI not found in environment, assuming local setup'
+$CI not found in environment, assuming local setup
++ echo 'Complete build using '\''cd build; make tarball'\'' or so.'
+Complete build using 'cd build; make tarball' or so.
++ exit 0

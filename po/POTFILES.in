@@ -4,6 +4,8 @@ src/tpicons.cpp
 src/tpJSON.cpp
 src/weatherfiles_pi.cpp
 src/tpUtils.cpp
+src/wf_api.cpp
+src/wf_prefs_dialog.cpp
 include/weatherfiles_pi.h
 include/tpicons.h
 include/tpControlDialogDef.h
@@ -11,3 +13,5 @@ include/tpControlDialogImpl.h
 include/tpIconCombo.h
 include/tpJSON.h
 include/tpUtils.h
+include/wf_api.h
+include/wf_prefs_dialog.h

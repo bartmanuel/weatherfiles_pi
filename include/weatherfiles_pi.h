@@ -60,8 +60,13 @@ public:
     // the current viewport (needs WANTS_OVERLAY_CALLBACK|WANTS_ONPAINT_VIEWPORT);
     // SetCurrentViewPort is a secondary hook. Falls back to the model domain if
     // neither fires.
-    bool RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp);
-    bool RenderGLOverlay(wxGLContext* pcontext, PlugIn_ViewPort* vp);
+    // API 1.18 calls the MultiCanvas overlay variants (the legacy
+    // RenderOverlay/RenderGLOverlay are NOT called for 1.18 plugins). We use
+    // them to capture the current viewport and draw the area-pick rectangle.
+    bool RenderOverlayMultiCanvas(wxDC& dc, PlugIn_ViewPort* vp, int canvas_ix,
+                                  int priority);
+    bool RenderGLOverlayMultiCanvas(wxGLContext* pcontext, PlugIn_ViewPort* vp,
+                                    int canvas_ix, int priority);
     void SetCurrentViewPort(PlugIn_ViewPort& vp);
     bool MouseEventHook(wxMouseEvent& event);
 

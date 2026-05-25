@@ -118,11 +118,12 @@ wxString weatherfiles_pi::GetLongDescription()  { return _(PLUGIN_LONG_DESCRIPTI
 
 int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
 
-bool weatherfiles_pi::RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp)
+bool weatherfiles_pi::RenderOverlayMultiCanvas(wxDC& dc, PlugIn_ViewPort* vp,
+                                               int canvas_ix, int priority)
 {
-    if (vp) m_last_vp = *vp;   // keep the current view for the download default
+    if (canvas_ix != 0) return false;        // primary canvas only
+    if (vp) m_last_vp = *vp;                  // keep the current view
 
-    // While dragging in pick mode, draw the selection rectangle.
     if (m_picking && m_dragging) {
         dc.SetPen(wxPen(wxColour(0x00, 0x54, 0xd6), 2));   // brand blue
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -136,11 +137,15 @@ bool weatherfiles_pi::RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp)
     return false;
 }
 
-bool weatherfiles_pi::RenderGLOverlay(wxGLContext* pcontext, PlugIn_ViewPort* vp)
+bool weatherfiles_pi::RenderGLOverlayMultiCanvas(wxGLContext* pcontext,
+                                                 PlugIn_ViewPort* vp,
+                                                 int canvas_ix, int priority)
 {
-    // OpenCPN renders in OpenGL mode by default, so this (not the wxDC overlay)
-    // is what's normally called. Capture the view + draw the rubber-band here.
+    // OpenCPN renders in OpenGL mode by default, so this is normally what's
+    // called. Capture the view + draw the rubber-band here.
+    if (canvas_ix != 0) return false;
     if (vp) m_last_vp = *vp;
+
     if (m_picking && m_dragging) {
         glColor3ub(0x00, 0x54, 0xd6);   // brand blue
         glLineWidth(2);

@@ -201,13 +201,37 @@ jobs:
               sh -c "otool -L build/*.dylib"
         - run: >
               sh -c "cat build/*.xml"
-        # Collect the built package so it's downloadable from the CircleCI
-        # "Artifacts" tab for local testing (deploy/Cloudsmith is off for now).
+        # Build an OpenCPN-importable tarball and publish it as a CircleCI
+        # artifact for local testing (deploy/Cloudsmith is off for now). The
+        # CPack TGZ has no metadata.xml, so OpenCPN's "Import plugin" rejects it
+        # with "Error extracting metadata from tarball". The build emits the
+        # metadata as a sibling *.xml; inject it at the payload root (next to
+        # OpenCPN.app) and repack.
         - run:
-            name: Collect plugin package
+            name: Build importable plugin tarball
             command: |
+              set -e
+              cd build
+              TARBALL=$(ls -1 *.tar.gz | head -1)
+              META=$(ls -1 *.xml | head -1)
+              echo "tarball=$TARBALL  meta=$META"
+              rm -rf _import && mkdir _import
+              tar -C _import -xzf "$TARBALL"
+              echo "=== extracted payload (depth 3) ==="
+              find _import -maxdepth 3 | sed 's|_import/||' | head -60
+              APP=$(find _import -maxdepth 3 -name OpenCPN.app -type d | head -1)
+              if [ -z "$APP" ]; then ROOT="_import"; else ROOT=$(dirname "$APP"); fi
+              echo "payload root: $ROOT"
+              cp "$META" "$ROOT/metadata.xml"
+              IMPORT="${TARBALL%.tar.gz}-import.tar.gz"
+              tar -C "$ROOT" -czf "../$IMPORT" .
+              cd ..
               mkdir -p /tmp/wf-artifacts
-              cp build/*.tar.gz build/*.pkg build/*.xml /tmp/wf-artifacts/ 2>/dev/null || true
+              cp "build/$IMPORT" /tmp/wf-artifacts/
+              cp build/*.tar.gz build/*.xml /tmp/wf-artifacts/ 2>/dev/null || true
+              find build/_import -name '*.dylib' -exec cp {} /tmp/wf-artifacts/ \; 2>/dev/null || true
+              echo "=== importable tarball contents (head) ==="
+              tar -tzf "/tmp/wf-artifacts/$IMPORT" | head -40
               ls -la /tmp/wf-artifacts
         - store_artifacts:
             path: /tmp/wf-artifacts

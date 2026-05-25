@@ -79,17 +79,33 @@ into the GRIB-display handoff — no header needed there.
 3. On Linux, wxWebRequest needs a backend (libcurl) at runtime; macOS/Windows
    use the OS HTTP stack. No new vendored deps.
 
-## How to build + test locally
+## How to build + test locally (macOS, fast loop)
+
+Mirrors the CircleCI `build-macos-universal` job, but lets you rebuild
+incrementally in seconds instead of waiting on CI.
 
 ```sh
-git clone --recurse-submodules https://github.com/bartmanuel/weatherfiles_pi.git
-cd weatherfiles_pi
-rm -rf build; mkdir build; cd build
-bash ../build-local-package-example.sh    # or: cmake .. && make
+# One-time setup: brew deps + prebuilt universal wx into /usr/local (sudo) +
+# cmake configure. (Installs cmake + wget via brew if missing.)
+ci/build-macos-local.sh --setup
+
+# Fast loop: edit code, then rebuild -> package -> importable tarball.
+ci/build-macos-local.sh
 ```
 
-Then in OpenCPN: **Options → Plugins → Import plugin** (the built tarball/lib),
-enable WeatherFiles, open its preferences, and run the increment's build check.
+The fast loop prints the path to `build/*-import.tar.gz`. Import it via OpenCPN
+**Options → Plugins → Import plugin**, enable WeatherFiles, open its
+Preferences. Local builds aren't quarantined, so no `xattr` step is needed (a
+CI-downloaded tarball does need `xattr -dr com.apple.quarantine <file>` first).
+
+Both the local helper and CI call `ci/make-importable-tarball.sh`, which injects
+the build's metadata `*.xml` into the CPack tarball as `metadata.xml` at the
+payload root — without it OpenCPN's import fails with "Error extracting metadata
+from tarball".
+
+Universal (arm64+x86_64) matches CI but doubles compile time; for pure local
+testing, reconfigure native-only once (`-DCMAKE_OSX_ARCHITECTURES=$(uname -m)`)
+to roughly halve it.
 
 Quick API sanity outside the plugin (confirms a token before testing in C++):
 

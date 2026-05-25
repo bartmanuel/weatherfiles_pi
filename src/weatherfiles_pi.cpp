@@ -54,6 +54,7 @@
 #include "tpJSON.h"
 #include "tpicons.h"
 #include "tpControlDialogImpl.h"
+#include "wf_prefs_dialog.h"
 
 #include "wx/jsonwriter.h"
 
@@ -285,7 +286,7 @@ int weatherfiles_pi::Init(void)
 //        WANTS_NMEA_EVENTS         |
 //        WANTS_NMEA_SENTENCES        |
         //    USES_AUI_MANAGER            |
-//        WANTS_PREFERENCES         |
+        WANTS_PREFERENCES         |
         //    WANTS_ONPAINT_VIEWPORT      |
         WANTS_PLUGIN_MESSAGING    |
         WANTS_LATE_INIT           |
@@ -384,7 +385,11 @@ void weatherfiles_pi::OnToolbarToolUpCallback(int id)
 
 void weatherfiles_pi::ShowPreferencesDialog( wxWindow* parent )
 {
-
+    WfPrefsDialog dlg( parent, m_token );
+    if( dlg.ShowModal() == wxID_OK ) {
+        m_token = dlg.GetToken();
+        SaveConfig();
+    }
 }
 
 void weatherfiles_pi::SetPluginMessage(wxString &message_id, wxString &message_body)
@@ -494,6 +499,7 @@ void weatherfiles_pi::SaveConfig()
         if(m_bRecreateConfig) {
             pConf->DeleteGroup( "/Settings/weatherfiles_pi" );
         } else {
+            pConf->Write( wxS( "ApiToken" ), m_token );
             pConf->Write( wxS( "SaveJSONOnStartup" ), g_bSaveJSONOnStartup );
             pConf->Write( wxS( "JSONSaveFile" ), m_fnOutputJSON.GetFullPath());
             pConf->Write( wxS( "JSONInputFile" ), m_fnInputJSON.GetFullPath());
@@ -522,6 +528,7 @@ void weatherfiles_pi::LoadConfig()
         wxString val;
         pConf->SetPath( wxS( "/Settings/weatherfiles_pi" ) );
         wxString  l_wxsColour;
+        pConf->Read( wxS( "ApiToken" ), &m_token, wxEmptyString );
         pConf->Read( wxS( "SaveJSONOnStartup"), &g_bSaveJSONOnStartup, false );
         if(g_bSaveJSONOnStartup) m_tpControlDialogImpl->SetSaveJSONOnStartup(g_bSaveJSONOnStartup);
         wxString l_filepath;

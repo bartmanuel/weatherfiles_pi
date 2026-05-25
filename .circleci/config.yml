@@ -201,6 +201,17 @@ jobs:
               sh -c "otool -L build/*.dylib"
         - run: >
               sh -c "cat build/*.xml"
+        # Collect the built package so it's downloadable from the CircleCI
+        # "Artifacts" tab for local testing (deploy/Cloudsmith is off for now).
+        - run:
+            name: Collect plugin package
+            command: |
+              mkdir -p /tmp/wf-artifacts
+              cp build/*.tar.gz build/*.pkg build/*.xml /tmp/wf-artifacts/ 2>/dev/null || true
+              ls -la /tmp/wf-artifacts
+        - store_artifacts:
+            path: /tmp/wf-artifacts
+            destination: plugin
         - deploy-code:
             deploy_use_orb: false
             install_python: false

@@ -161,6 +161,8 @@ public:
     wxFileConfig        *m_pTPConfig;
     wxTimer             *m_timer;
 
+    wxString             m_token;   // WeatherFiles API personal access token
+
 
     //    The required PlugIn Methods
     int Init(void);

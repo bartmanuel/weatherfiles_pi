@@ -46,7 +46,7 @@ into the GRIB-display handoff — no header needed there.
   `wxWidgets_USE_LIBS` (cmake/PluginConfigure.cmake). No further wiring needed.
 - **Build check:** compiles + links; no runtime UI yet.
 
-### 1. Preferences: token entry + validate — *next*
+### 1. Preferences: token entry + validate — *scaffolded*
 - In `weatherfiles_pi::ShowPreferencesDialog(wxWindow* parent)`, build a small
   dialog: a `wxTextCtrl` for the token, a **Validate** button, a status label.
 - Persist the token via OpenCPN's config (`GetOCPNConfigObject()` →

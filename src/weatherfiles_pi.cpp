@@ -248,11 +248,11 @@ int weatherfiles_pi::Init(void)
 
 
 #ifdef PLUGIN_USE_SVG
-    m_weatherfiles_button_id  = InsertPlugInToolSVG(_("Test Plugin"), m_ptpicons->m_s_weatherfiles_grey_pi, m_ptpicons->m_s_weatherfiles_pi, m_ptpicons->m_s_weatherfiles_toggled_pi, wxITEM_CHECK,
-                                                  _("Test Plugin"), wxS(""), NULL, weatherfiles_POSITION, 0, this);
+    m_weatherfiles_button_id  = InsertPlugInToolSVG(_("WeatherFiles"), m_ptpicons->m_s_weatherfiles_grey_pi, m_ptpicons->m_s_weatherfiles_pi, m_ptpicons->m_s_weatherfiles_toggled_pi, wxITEM_CHECK,
+                                                  _("WeatherFiles"), wxS(""), NULL, weatherfiles_POSITION, 0, this);
 #else
-    m_weatherfiles_button_id  = InsertPlugInTool(_("Test Plugin"), &m_ptpicons->m_bm_weatherfiles_grey_pi, &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK,
-                                             _("Test Plugin"), wxS(""), NULL, weatherfiles_POSITION, 0, this);
+    m_weatherfiles_button_id  = InsertPlugInTool(_("WeatherFiles"), &m_ptpicons->m_bm_weatherfiles_grey_pi, &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK,
+                                             _("WeatherFiles"), wxS(""), NULL, weatherfiles_POSITION, 0, this);
 #endif
 
     //    In order to avoid an ASSERT on msw debug builds,
@@ -467,17 +467,12 @@ void weatherfiles_pi::appendOSDirSlash(wxString* pString)
 
 void weatherfiles_pi::ToggleToolbarIcon( void )
 {
-    if(m_btpDialog) {
-        m_btpDialog = false;
-        SetToolbarItemState( m_weatherfiles_button_id, false );
-        m_tpControlDialogImpl->Hide();
-    } else {
-        m_btpDialog = true;
-        SetToolbarItemState( m_weatherfiles_button_id, true  );
-        if(!m_bDoneODAPIVersionCall) GetODAPI();
-        m_tpControlDialogImpl->SetPanels();
-        m_tpControlDialogImpl->Show();
-    }
+    // Until the model-list panel (increment 2) lands, the toolbar button opens
+    // the WeatherFiles preferences (token entry + validate). The old testplugin
+    // template probed the Object-Draw API here and showed a demo control dialog;
+    // WeatherFiles has no use for either, so that's gone.
+    ShowPreferencesDialog( m_parent_window );
+    SetToolbarItemState( m_weatherfiles_button_id, false );
 }
 
 void weatherfiles_pi::SaveConfig()

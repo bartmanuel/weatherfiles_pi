@@ -65,8 +65,10 @@ void WfApi::OnState(wxWebRequestEvent& evt) {
 }
 
 namespace {
-// Pull a list of strings out of a wxJSON array value.
-std::vector<wxString> JsonStrArray(const wxJSONValue& v) {
+// Pull a list of strings out of a wxJSON array value. Takes a non-const ref on
+// purpose: this wxJSON's operator[] has no const overload, so a const value
+// can't be indexed (clang/macOS rejects it; see ocpninclude/wx/jsonval.h).
+std::vector<wxString> JsonStrArray(wxJSONValue& v) {
   std::vector<wxString> out;
   if (v.IsArray()) {
     for (int i = 0; i < v.Size(); ++i) out.push_back(v[i].AsString());
@@ -112,12 +114,12 @@ void WfApi::FetchModels(WfModelsCb on_result) {
     }
     std::vector<WfModel> models;
     for (int i = 0; i < root.Size(); ++i) {
-      const wxJSONValue& m = root[i];
+      wxJSONValue& m = root[i];  // non-const: operator[] has no const overload
       WfModel wm;
       wm.id = m["id"].AsString();
       wm.name = m["name"].AsString();
       wm.source = m["source"].AsString();
-      const wxJSONValue& b = m["bounds"];  // {south, west, north, east}
+      wxJSONValue& b = m["bounds"];  // {south, west, north, east} (non-const, see above)
       wm.south = b["south"].AsDouble();
       wm.west = b["west"].AsDouble();
       wm.north = b["north"].AsDouble();

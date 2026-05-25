@@ -18,8 +18,10 @@
 
 #include <wx/string.h>
 #include <wx/fileconf.h>
+#include <wx/gdicmn.h>   // wxPoint
 
 #include "globals.h"
+#include "wf_api.h"      // WfModel, WfBBox
 
 class tpicons;
 
@@ -59,7 +61,15 @@ public:
     // SetCurrentViewPort is a secondary hook. Falls back to the model domain if
     // neither fires.
     bool RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp);
+    bool RenderGLOverlay(wxGLContext* pcontext, PlugIn_ViewPort* vp);
     void SetCurrentViewPort(PlugIn_ViewPort& vp);
+    bool MouseEventHook(wxMouseEvent& event);
+
+    // Enter "pick area on chart" mode for `model`: the next left-drag on the
+    // chart draws a box; on release the download dialog opens pre-filled with
+    // it. Called by the model browser, which closes itself first so the chart
+    // is interactive.
+    void StartAreaPick(const WfModel& model);
 
     // WeatherFiles API personal access token. Public so the dialogs can read it
     // (set via ShowPreferencesDialog, persisted in the OpenCPN config).
@@ -74,6 +84,13 @@ private:
     tpicons      *m_ptpicons;
     int           m_weatherfiles_button_id;
     PlugIn_ViewPort m_last_vp;   // most recent chart view (bValid until set)
+
+    // On-chart area-pick state.
+    bool     m_picking = false;   // in pick mode (armed by StartAreaPick)
+    bool     m_dragging = false;  // a left-drag is in progress
+    wxPoint  m_pick_start;        // drag anchor (canvas pixels)
+    wxPoint  m_pick_cur;          // current drag point (canvas pixels)
+    WfModel  m_pending_model;     // model to download once the box is drawn
 };
 
 #endif  // _WEATHERFILESPI_H_

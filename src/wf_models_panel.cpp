@@ -13,14 +13,16 @@
 #include <algorithm>
 
 #include "wf_download_dialog.h"
+#include "weatherfiles_pi.h"
 
-enum { ID_WF_REFRESH = wxID_HIGHEST + 10, ID_WF_DOWNLOAD_SEL };
+enum { ID_WF_REFRESH = wxID_HIGHEST + 10, ID_WF_DOWNLOAD_SEL, ID_WF_PICK };
 
 WfModelsPanel::WfModelsPanel(wxWindow* parent, const wxString& token,
-                             const WfBBox& default_box)
+                             const WfBBox& default_box, weatherfiles_pi* owner)
     : wxDialog(parent, wxID_ANY, _("WeatherFiles - Models"), wxDefaultPosition,
                wxSize(660, 440), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_api(token),
+      m_owner(owner),
       m_default_box(default_box) {
   auto* top = new wxBoxSizer(wxVERTICAL);
 
@@ -38,8 +40,10 @@ WfModelsPanel::WfModelsPanel(wxWindow* parent, const wxString& token,
 
   auto* row = new wxBoxSizer(wxHORIZONTAL);
   m_refresh = new wxButton(this, ID_WF_REFRESH, _("Refresh"));
+  m_pick = new wxButton(this, ID_WF_PICK, _("Pick area on chart"));
   m_download = new wxButton(this, ID_WF_DOWNLOAD_SEL, _("Download..."));
   row->Add(m_refresh, 0, wxRIGHT, 8);
+  row->Add(m_pick, 0, wxRIGHT, 8);
   row->Add(m_download, 0, wxRIGHT, 8);
   row->AddStretchSpacer();
   row->Add(new wxButton(this, wxID_CANCEL, _("Close")), 0);
@@ -48,9 +52,24 @@ WfModelsPanel::WfModelsPanel(wxWindow* parent, const wxString& token,
   SetSizer(top);
   Bind(wxEVT_BUTTON, &WfModelsPanel::OnRefresh, this, ID_WF_REFRESH);
   Bind(wxEVT_BUTTON, &WfModelsPanel::OnDownload, this, ID_WF_DOWNLOAD_SEL);
+  Bind(wxEVT_BUTTON, &WfModelsPanel::OnPick, this, ID_WF_PICK);
   Bind(wxEVT_LIST_ITEM_ACTIVATED, &WfModelsPanel::OnActivate, this);
 
   Load();
+}
+
+const WfModel* WfModelsPanel::SelectedAllowedModel() {
+  long sel = m_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+  if (sel < 0 || sel >= (long)m_models.size()) {
+    SetStatus(_("Select a model first."), false);
+    return nullptr;
+  }
+  const WfModel& m = m_models[sel];
+  if (std::find(m_allowed.begin(), m_allowed.end(), m.id) == m_allowed.end()) {
+    SetStatus(_("That model requires the Pro tier."), false);
+    return nullptr;
+  }
+  return &m_models[sel];
 }
 
 void WfModelsPanel::OnActivate(wxListEvent&) { OpenDownloadForSelection(); }
@@ -58,20 +77,18 @@ void WfModelsPanel::OnActivate(wxListEvent&) { OpenDownloadForSelection(); }
 void WfModelsPanel::OnDownload(wxCommandEvent&) { OpenDownloadForSelection(); }
 
 void WfModelsPanel::OpenDownloadForSelection() {
-  long sel = m_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-  if (sel < 0 || sel >= (long)m_models.size()) {
-    SetStatus(_("Select a model first."), false);
-    return;
-  }
-  const WfModel& m = m_models[sel];
-  const bool allowed =
-      std::find(m_allowed.begin(), m_allowed.end(), m.id) != m_allowed.end();
-  if (!allowed) {
-    SetStatus(_("That model requires the Pro tier."), false);
-    return;
-  }
-  WfDownloadDialog dlg(this, m, m_default_box, m_api.Token());
+  const WfModel* m = SelectedAllowedModel();
+  if (!m) return;
+  WfDownloadDialog dlg(this, *m, m_default_box, m_api.Token());
   dlg.ShowModal();
+}
+
+void WfModelsPanel::OnPick(wxCommandEvent&) {
+  const WfModel* m = SelectedAllowedModel();
+  if (!m) return;
+  if (m_owner) m_owner->StartAreaPick(*m);
+  // Close the browser so the chart is interactive for the drag.
+  EndModal(wxID_CANCEL);
 }
 
 void WfModelsPanel::SetStatus(const wxString& text, bool ok) {

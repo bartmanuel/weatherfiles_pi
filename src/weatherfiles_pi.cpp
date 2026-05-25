@@ -14,6 +14,13 @@
 #include "tpicons.h"
 #include "wf_prefs_dialog.h"
 #include "wf_models_panel.h"
+#include "wf_download_dialog.h"
+
+#ifdef __WXOSX__
+#include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
 
 #ifndef DECL_EXP
 #ifdef __WXMSW__
@@ -84,7 +91,7 @@ int weatherfiles_pi::Init(void)
 #endif
 
     return (INSTALLS_TOOLBAR_TOOL | WANTS_TOOLBAR_CALLBACK | WANTS_PREFERENCES |
-            WANTS_OVERLAY_CALLBACK | WANTS_ONPAINT_VIEWPORT);
+            WANTS_OVERLAY_CALLBACK | WANTS_ONPAINT_VIEWPORT | WANTS_MOUSE_EVENTS);
 }
 
 bool weatherfiles_pi::DeInit(void)
@@ -114,12 +121,106 @@ int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
 bool weatherfiles_pi::RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp)
 {
     if (vp) m_last_vp = *vp;   // keep the current view for the download default
-    return false;              // we don't draw anything (yet)
+
+    // While dragging in pick mode, draw the selection rectangle.
+    if (m_picking && m_dragging) {
+        dc.SetPen(wxPen(wxColour(0x00, 0x54, 0xd6), 2));   // brand blue
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        const int x = wxMin(m_pick_start.x, m_pick_cur.x);
+        const int y = wxMin(m_pick_start.y, m_pick_cur.y);
+        const int w = abs(m_pick_cur.x - m_pick_start.x);
+        const int h = abs(m_pick_cur.y - m_pick_start.y);
+        dc.DrawRectangle(x, y, w, h);
+        return true;
+    }
+    return false;
+}
+
+bool weatherfiles_pi::RenderGLOverlay(wxGLContext* pcontext, PlugIn_ViewPort* vp)
+{
+    // OpenCPN renders in OpenGL mode by default, so this (not the wxDC overlay)
+    // is what's normally called. Capture the view + draw the rubber-band here.
+    if (vp) m_last_vp = *vp;
+    if (m_picking && m_dragging) {
+        glColor3ub(0x00, 0x54, 0xd6);   // brand blue
+        glLineWidth(2);
+        glBegin(GL_LINE_LOOP);
+        glVertex2i(m_pick_start.x, m_pick_start.y);
+        glVertex2i(m_pick_cur.x, m_pick_start.y);
+        glVertex2i(m_pick_cur.x, m_pick_cur.y);
+        glVertex2i(m_pick_start.x, m_pick_cur.y);
+        glEnd();
+        return true;
+    }
+    return false;
 }
 
 void weatherfiles_pi::SetCurrentViewPort(PlugIn_ViewPort& vp)
 {
     m_last_vp = vp;
+}
+
+void weatherfiles_pi::StartAreaPick(const WfModel& model)
+{
+    m_pending_model = model;
+    m_picking = true;
+    m_dragging = false;
+}
+
+bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
+{
+    if (!m_picking) return false;   // let OpenCPN handle the mouse normally
+
+    if (event.RightDown()) {        // cancel the pick
+        m_picking = false;
+        m_dragging = false;
+        RequestRefresh(m_parent_window);
+        return true;
+    }
+    if (event.LeftDown()) {
+        m_pick_start = event.GetPosition();
+        m_pick_cur = m_pick_start;
+        m_dragging = true;
+        return true;
+    }
+    if (event.Dragging() && m_dragging) {
+        m_pick_cur = event.GetPosition();
+        RequestRefresh(m_parent_window);   // redraw the rubber-band
+        return true;
+    }
+    if (event.LeftUp() && m_dragging) {
+        m_dragging = false;
+        m_picking = false;
+        const wxPoint a = m_pick_start, b = event.GetPosition();
+        RequestRefresh(m_parent_window);   // clear the rectangle
+
+        // Convert the two corners to lat/lon using the current viewport.
+        double lat1, lon1, lat2, lon2;
+        GetCanvasLLPix(&m_last_vp, a, &lat1, &lon1);
+        GetCanvasLLPix(&m_last_vp, b, &lat2, &lon2);
+        WfBBox box;
+        box.south = wxMin(lat1, lat2);
+        box.north = wxMax(lat1, lat2);
+        box.west = wxMin(lon1, lon2);
+        box.east = wxMax(lon1, lon2);
+        box.valid = true;
+
+        // Tiny boxes are almost certainly a misclick - ignore.
+        if (box.north - box.south < 0.01 || box.east - box.west < 0.01)
+            return true;
+
+        // Open the download dialog after this event finishes dispatching.
+        const WfModel model = m_pending_model;
+        const wxString token = m_token;
+        wxWindow* parent = m_parent_window;
+        // Open the dialog after this mouse event finishes dispatching.
+        wxTheApp->CallAfter([parent, model, box, token]() {
+            WfDownloadDialog dlg(parent, model, box, token);
+            dlg.ShowModal();
+        });
+        return true;
+    }
+    return false;
 }
 
 void weatherfiles_pi::OnToolbarToolCallback(int id)
@@ -135,7 +236,7 @@ void weatherfiles_pi::OnToolbarToolCallback(int id)
         view.east = m_last_vp.lon_max;
         view.valid = true;
     }
-    WfModelsPanel dlg(m_parent_window, m_token, view);
+    WfModelsPanel dlg(m_parent_window, m_token, view, this);
     dlg.ShowModal();
     SetToolbarItemState(m_weatherfiles_button_id, false);
 }

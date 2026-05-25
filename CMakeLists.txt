@@ -180,19 +180,13 @@ add_definitions(-DUSE_S57)
 
 # ---- Section Below - Add your project SET(SRCS and SET(HDRS  etc..
 
-set(SRCS src/tpControlDialogDef.cpp src/tpControlDialogImpl.cpp src/tpicons.cpp
-         src/tpJSON.cpp src/weatherfiles_pi.cpp src/tpUtils.cpp
+set(SRCS src/tpicons.cpp src/weatherfiles_pi.cpp
          src/wf_api.cpp src/wf_prefs_dialog.cpp src/wf_models_panel.cpp
 )
 
 set(HDRS
     include/weatherfiles_pi.h
     include/tpicons.h
-    include/tpControlDialogDef.h
-    include/tpControlDialogImpl.h
-    include/tpIconCombo.h
-    include/tpJSON.h
-    include/tpUtils.h
     include/wf_api.h
     include/wf_prefs_dialog.h
     include/wf_models_panel.h

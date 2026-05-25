@@ -7,6 +7,7 @@
 
 #include "wf_api.h"
 
+#include <wx/filefn.h>
 #include <wx/jsonreader.h>
 #include <wx/jsonval.h>
 #include <wx/webrequest.h>
@@ -37,30 +38,86 @@ void WfApi::StartGet(const wxString& path, RawCb cb) {
   request.Start();
 }
 
+void WfApi::DownloadGrib(const wxString& query, const wxString& out_path,
+                         WfDownloadCb cb) {
+  if (m_pending || m_pending_dl) {
+    cb(false, "A request is already in progress");
+    return;
+  }
+  wxWebSession& session = wxWebSession::GetDefault();
+  if (!session.IsOpened()) {
+    cb(false, "HTTP backend unavailable");
+    return;
+  }
+  wxWebRequest request = session.CreateRequest(this, m_base_url + query);
+  if (!request.IsOk()) {
+    cb(false, "Could not create request");
+    return;
+  }
+  request.SetHeader("Authorization", "Bearer " + m_token);
+  request.SetStorage(wxWebRequest::Storage_File);  // stream the GRIB to a temp file
+  m_pending_dl = std::move(cb);
+  m_dl_out_path = out_path;
+  request.Start();
+}
+
 void WfApi::OnState(wxWebRequestEvent& evt) {
+  const int state = evt.GetState();
+  if (state != wxWebRequest::State_Completed &&
+      state != wxWebRequest::State_Failed &&
+      state != wxWebRequest::State_Unauthorized) {
+    return;  // State_Active / State_Idle - keep waiting
+  }
+
+  // File-download branch (GRIB to disk).
+  if (m_pending_dl) {
+    WfDownloadCb cb = std::move(m_pending_dl);
+    m_pending_dl = nullptr;
+    const wxString out = m_dl_out_path;
+    if (state == wxWebRequest::State_Unauthorized) {
+      cb(false, "Unauthorized - check your API token");
+      return;
+    }
+    if (state == wxWebRequest::State_Failed) {
+      cb(false, evt.GetErrorDescription());
+      return;
+    }
+    wxWebResponse resp = evt.GetResponse();
+    const int status = static_cast<int>(resp.GetStatus());
+    if (status != 200) {
+      // Error responses carry a short JSON body; surface it.
+      cb(false, wxString::Format("HTTP %d: %s", status, resp.AsString()));
+      return;
+    }
+    const wxString tmp = resp.GetDataFile();
+    if (tmp.IsEmpty() || !wxFileExists(tmp)) {
+      cb(false, "No data received from server");
+      return;
+    }
+    if (!wxCopyFile(tmp, out, true)) {
+      cb(false, "Could not save GRIB to " + out);
+      return;
+    }
+    cb(true, "");
+    return;
+  }
+
+  // JSON GET branch.
   if (!m_pending) return;
-  switch (evt.GetState()) {
+  RawCb cb = std::move(m_pending);
+  m_pending = nullptr;
+  switch (state) {
     case wxWebRequest::State_Completed: {
-      RawCb cb = std::move(m_pending);
-      m_pending = nullptr;
       const wxWebResponse& resp = evt.GetResponse();
       cb(true, resp.AsString(), static_cast<int>(resp.GetStatus()), "");
       break;
     }
-    case wxWebRequest::State_Unauthorized: {
-      RawCb cb = std::move(m_pending);
-      m_pending = nullptr;
+    case wxWebRequest::State_Unauthorized:
       cb(false, "", 401, "Unauthorized - check your API token");
       break;
-    }
-    case wxWebRequest::State_Failed: {
-      RawCb cb = std::move(m_pending);
-      m_pending = nullptr;
+    default:  // State_Failed
       cb(false, "", 0, evt.GetErrorDescription());
       break;
-    }
-    default:
-      break;  // State_Active / State_Idle - keep waiting
   }
 }
 

@@ -53,6 +53,11 @@ public:
     void OnToolbarToolCallback(int id);
     void ShowPreferencesDialog(wxWindow* parent);
 
+    // Track the current chart view so the download dialog can default its area
+    // to what the user is looking at. (May or may not be called depending on
+    // the OpenCPN build; falls back to the model domain if never set.)
+    void SetCurrentViewPort(PlugIn_ViewPort& vp);
+
     // WeatherFiles API personal access token. Public so the dialogs can read it
     // (set via ShowPreferencesDialog, persisted in the OpenCPN config).
     wxString m_token;
@@ -65,6 +70,7 @@ private:
     wxFileConfig *m_pTPConfig;
     tpicons      *m_ptpicons;
     int           m_weatherfiles_button_id;
+    PlugIn_ViewPort m_last_vp;   // most recent chart view (bValid until set)
 };
 
 #endif  // _WEATHERFILESPI_H_

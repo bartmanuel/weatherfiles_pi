@@ -52,6 +52,7 @@ weatherfiles_pi::weatherfiles_pi(void *ppimgr)
     m_parent_window = nullptr;
     m_pTPConfig = nullptr;
     m_weatherfiles_button_id = -1;
+    m_last_vp.bValid = false;
     m_ptpicons = new tpicons();   // loads the toolbar/plugin icons
 }
 
@@ -109,11 +110,25 @@ wxString weatherfiles_pi::GetLongDescription()  { return _(PLUGIN_LONG_DESCRIPTI
 
 int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
 
+void weatherfiles_pi::SetCurrentViewPort(PlugIn_ViewPort& vp)
+{
+    m_last_vp = vp;
+}
+
 void weatherfiles_pi::OnToolbarToolCallback(int id)
 {
-    // Open the WeatherFiles model browser. (Token is set via Preferences; the
+    // Open the WeatherFiles model browser, defaulting the download area to the
+    // current chart view if we have one. (Token is set via Preferences; the
     // panel prompts if none is configured.)
-    WfModelsPanel dlg(m_parent_window, m_token);
+    WfBBox view;
+    if (m_last_vp.bValid) {
+        view.south = m_last_vp.lat_min;
+        view.north = m_last_vp.lat_max;
+        view.west = m_last_vp.lon_min;
+        view.east = m_last_vp.lon_max;
+        view.valid = true;
+    }
+    WfModelsPanel dlg(m_parent_window, m_token, view);
     dlg.ShowModal();
     SetToolbarItemState(m_weatherfiles_button_id, false);
 }

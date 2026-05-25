@@ -182,6 +182,7 @@ add_definitions(-DUSE_S57)
 
 set(SRCS src/tpicons.cpp src/weatherfiles_pi.cpp
          src/wf_api.cpp src/wf_prefs_dialog.cpp src/wf_models_panel.cpp
+         src/wf_download_dialog.cpp
 )
 
 set(HDRS
@@ -190,6 +191,7 @@ set(HDRS
     include/wf_api.h
     include/wf_prefs_dialog.h
     include/wf_models_panel.h
+    include/wf_download_dialog.h
 )
 
 add_definitions(-DPLUGIN_USE_SVG)

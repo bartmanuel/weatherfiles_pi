@@ -33,6 +33,12 @@ struct WfModel {
   int run_interval_h = 0;
 };
 
+// A geographic bounding box (degrees). `valid` is false until set.
+struct WfBBox {
+  double south = 0, west = 0, north = 0, east = 0;
+  bool valid = false;
+};
+
 // Account info from GET /v1/auth/me.
 struct WfAccount {
   wxString email;
@@ -44,6 +50,7 @@ struct WfAccount {
 
 using WfAccountCb = std::function<void(bool ok, const WfAccount&, const wxString& err)>;
 using WfModelsCb = std::function<void(bool ok, const std::vector<WfModel>&, const wxString& err)>;
+using WfDownloadCb = std::function<void(bool ok, const wxString& err)>;
 
 class WfApi : public wxEvtHandler {
  public:
@@ -59,6 +66,11 @@ class WfApi : public wxEvtHandler {
   // GET /v1/models - the model catalogue.
   void FetchModels(WfModelsCb on_result);
 
+  // GET /v1/grib<query> - one-shot sliceless download streamed to `out_path`.
+  // `query` is the path+query starting with "/grib?..." (caller builds it).
+  void DownloadGrib(const wxString& query, const wxString& out_path,
+                    WfDownloadCb on_result);
+
  private:
   // Issues an authenticated GET to base_url + path; `cb` is invoked on the GUI
   // thread with (ok, body, http_status, err).
@@ -68,9 +80,12 @@ class WfApi : public wxEvtHandler {
 
   wxString m_token;
   wxString m_base_url;
-  // Single request in flight at a time (the plugin calls these sequentially:
-  // validate-on-save, then fetch-models-on-open). Bound once in the ctor.
+  // Single request in flight at a time (the plugin calls these sequentially).
+  // Bound once in the ctor. Either a JSON GET (m_pending) or a file download
+  // (m_pending_dl) is active, never both.
   RawCb m_pending;
+  WfDownloadCb m_pending_dl;
+  wxString m_dl_out_path;
 };
 
 #endif  // WF_API_H

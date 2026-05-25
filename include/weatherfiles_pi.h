@@ -54,8 +54,11 @@ public:
     void ShowPreferencesDialog(wxWindow* parent);
 
     // Track the current chart view so the download dialog can default its area
-    // to what the user is looking at. (May or may not be called depending on
-    // the OpenCPN build; falls back to the model domain if never set.)
+    // to what the user is looking at. RenderOverlay is called every redraw with
+    // the current viewport (needs WANTS_OVERLAY_CALLBACK|WANTS_ONPAINT_VIEWPORT);
+    // SetCurrentViewPort is a secondary hook. Falls back to the model domain if
+    // neither fires.
+    bool RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp);
     void SetCurrentViewPort(PlugIn_ViewPort& vp);
 
     // WeatherFiles API personal access token. Public so the dialogs can read it

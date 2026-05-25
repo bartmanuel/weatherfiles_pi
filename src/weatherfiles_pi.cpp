@@ -83,7 +83,8 @@ int weatherfiles_pi::Init(void)
         wxS(""), NULL, weatherfiles_POSITION, 0, this);
 #endif
 
-    return (INSTALLS_TOOLBAR_TOOL | WANTS_TOOLBAR_CALLBACK | WANTS_PREFERENCES);
+    return (INSTALLS_TOOLBAR_TOOL | WANTS_TOOLBAR_CALLBACK | WANTS_PREFERENCES |
+            WANTS_OVERLAY_CALLBACK | WANTS_ONPAINT_VIEWPORT);
 }
 
 bool weatherfiles_pi::DeInit(void)
@@ -109,6 +110,12 @@ wxString weatherfiles_pi::GetShortDescription() { return _(PLUGIN_SHORT_DESCRIPT
 wxString weatherfiles_pi::GetLongDescription()  { return _(PLUGIN_LONG_DESCRIPTION); }
 
 int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
+
+bool weatherfiles_pi::RenderOverlay(wxDC& dc, PlugIn_ViewPort* vp)
+{
+    if (vp) m_last_vp = *vp;   // keep the current view for the download default
+    return false;              // we don't draw anything (yet)
+}
 
 void weatherfiles_pi::SetCurrentViewPort(PlugIn_ViewPort& vp)
 {

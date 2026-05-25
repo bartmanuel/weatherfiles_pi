@@ -173,6 +173,17 @@ void weatherfiles_pi::StartAreaPick(const WfModel& model)
     m_dragging = false;
 }
 
+// wxMouseEvent positions are logical points; the GL overlay + viewport work in
+// physical pixels. On a retina/HiDPI display they differ by the content-scale
+// factor, so scale mouse coords up to physical pixels for drawing + conversion.
+static wxPoint wfPhysPos(const wxMouseEvent& e)
+{
+    double sf = OCPN_GetDisplayContentScaleFactor();
+    if (sf <= 0.0) sf = 1.0;
+    const wxPoint p = e.GetPosition();
+    return wxPoint(static_cast<int>(p.x * sf), static_cast<int>(p.y * sf));
+}
+
 bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
 {
     if (!m_picking) return false;   // let OpenCPN handle the mouse normally
@@ -184,20 +195,20 @@ bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
         return true;
     }
     if (event.LeftDown()) {
-        m_pick_start = event.GetPosition();
+        m_pick_start = wfPhysPos(event);
         m_pick_cur = m_pick_start;
         m_dragging = true;
         return true;
     }
     if (event.Dragging() && m_dragging) {
-        m_pick_cur = event.GetPosition();
+        m_pick_cur = wfPhysPos(event);
         RequestRefresh(m_parent_window);   // redraw the rubber-band
         return true;
     }
     if (event.LeftUp() && m_dragging) {
         m_dragging = false;
         m_picking = false;
-        const wxPoint a = m_pick_start, b = event.GetPosition();
+        const wxPoint a = m_pick_start, b = wfPhysPos(event);
         RequestRefresh(m_parent_window);   // clear the rectangle
 
         // Convert the two corners to lat/lon using the current viewport.

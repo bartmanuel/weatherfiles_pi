@@ -55,6 +55,7 @@
 #include "tpicons.h"
 #include "tpControlDialogImpl.h"
 #include "wf_prefs_dialog.h"
+#include "wf_models_panel.h"
 
 #include "wx/jsonwriter.h"
 
@@ -467,11 +468,10 @@ void weatherfiles_pi::appendOSDirSlash(wxString* pString)
 
 void weatherfiles_pi::ToggleToolbarIcon( void )
 {
-    // Until the model-list panel (increment 2) lands, the toolbar button opens
-    // the WeatherFiles preferences (token entry + validate). The old testplugin
-    // template probed the Object-Draw API here and showed a demo control dialog;
-    // WeatherFiles has no use for either, so that's gone.
-    ShowPreferencesDialog( m_parent_window );
+    // Toolbar button opens the WeatherFiles model browser. (Token is entered
+    // separately via Preferences; the panel prompts if none is set.)
+    WfModelsPanel dlg( m_parent_window, m_token );
+    dlg.ShowModal();
     SetToolbarItemState( m_weatherfiles_button_id, false );
 }
 

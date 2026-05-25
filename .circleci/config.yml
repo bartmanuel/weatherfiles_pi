@@ -219,6 +219,9 @@ jobs:
             privileged: False
             shell: cmd.exe
             command: ci\circleci-build-msvc.bat
+            # win_deps.bat (choco install cmake + fetch wx) routinely runs >10m
+            # with no console output; the default 10m no-output timeout kills it.
+            no_output_timeout: 30m
         - deploy-code:
             deploy_use_orb: false
     build-flatpak-aarch64-2208:

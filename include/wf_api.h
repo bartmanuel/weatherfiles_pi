@@ -53,10 +53,10 @@ class WfApi : public wxEvtHandler {
   void SetToken(const wxString& token) { m_token = token; }
   const wxString& Token() const { return m_token; }
 
-  // GET /v1/auth/me — validates the token and returns account/quota info.
+  // GET /v1/auth/me - validates the token and returns account/quota info.
   void ValidateToken(WfAccountCb on_result);
 
-  // GET /v1/models — the model catalogue.
+  // GET /v1/models - the model catalogue.
   void FetchModels(WfModelsCb on_result);
 
  private:

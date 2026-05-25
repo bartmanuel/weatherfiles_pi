@@ -50,7 +50,7 @@ void WfApi::OnState(wxWebRequestEvent& evt) {
     case wxWebRequest::State_Unauthorized: {
       RawCb cb = std::move(m_pending);
       m_pending = nullptr;
-      cb(false, "", 401, "Unauthorized — check your API token");
+      cb(false, "", 401, "Unauthorized - check your API token");
       break;
     }
     case wxWebRequest::State_Failed: {
@@ -60,7 +60,7 @@ void WfApi::OnState(wxWebRequestEvent& evt) {
       break;
     }
     default:
-      break;  // State_Active / State_Idle — keep waiting
+      break;  // State_Active / State_Idle - keep waiting
   }
 }
 

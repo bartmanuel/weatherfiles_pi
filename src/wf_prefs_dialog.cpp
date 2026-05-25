@@ -51,8 +51,12 @@ wxString WfPrefsDialog::GetToken() const {
 
 void WfPrefsDialog::SetStatus(const wxString& text, bool ok) {
   if (!m_status) return;
-  m_status->SetForegroundColour(ok ? *wxBLACK : *wxRED);
+  // Theme-safe colours: *wxBLACK was unreadable on macOS dark-mode's grey
+  // dialog background. These greens/reds read on both light and dark.
+  m_status->SetForegroundColour(ok ? wxColour(0x1a, 0x9e, 0x1a)
+                                   : wxColour(0xe0, 0x40, 0x40));
   m_status->SetLabel(text);
+  m_status->Refresh();  // force a repaint of the recoloured label (macOS)
   Layout();
 }
 
@@ -74,12 +78,12 @@ void WfPrefsDialog::OnValidate(wxCommandEvent&) {
         }
         wxString quota =
             acct.daily_download_limit < 0
-                ? wxString(_("unlimited"))
-                : wxString::Format("%d/%d today",
+                ? wxString(_("unlimited downloads"))
+                : wxString::Format("%d/%d downloads today",
                                    acct.daily_downloads_used_today,
                                    acct.daily_download_limit);
-        SetStatus(wxString::Format("%s  (%s)  -  %s", acct.email, acct.tier,
-                                   quota),
+        SetStatus(wxString::Format("Token valid - %s (%s), %s",
+                                   acct.email, acct.tier, quota),
                   true);
       });
 }

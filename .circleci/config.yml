@@ -419,6 +419,18 @@ jobs:
         - run:
             command: ci/circleci-build-ubuntu-docker.sh
             no_output_timeout: 30m
+        # Publish an OpenCPN-importable tarball for local testing (the docker
+        # build leaves the CPack tarball + metadata in build/ on the host).
+        - run:
+            name: Build importable plugin tarball
+            command: |
+              bash ci/make-importable-tarball.sh build
+              mkdir -p /tmp/wf-artifacts
+              cp build/*.tar.gz build/*.xml /tmp/wf-artifacts/ 2>/dev/null || true
+              ls -la /tmp/wf-artifacts
+        - store_artifacts:
+            path: /tmp/wf-artifacts
+            destination: plugin
         - deploy-code
     build-debian-armhf-11-bullseye:
         machine:

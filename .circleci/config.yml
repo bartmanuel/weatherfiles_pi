@@ -240,6 +240,20 @@ jobs:
             # win_deps.bat (choco install cmake + fetch wx) routinely runs >10m
             # with no console output; the default 10m no-output timeout kills it.
             no_output_timeout: 30m
+        # Publish an OpenCPN-importable tarball for local testing. Runs under the
+        # job's bash.exe (git-bash: tar/sed/head available); a relative artifacts
+        # dir avoids Windows /tmp path issues.
+        - run:
+            name: Build importable plugin tarball
+            command: |
+              ls -la build/ || true
+              bash ci/make-importable-tarball.sh build
+              mkdir -p wf-artifacts
+              cp build/*.tar.gz build/*.xml wf-artifacts/ 2>/dev/null || true
+              ls -la wf-artifacts
+        - store_artifacts:
+            path: wf-artifacts
+            destination: plugin
         - deploy-code:
             deploy_use_orb: false
     build-flatpak-aarch64-2208:

@@ -1,13 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- WeatherFiles mark, resting state (matches frontend/static/favicon.svg). -->
-  <circle cx="16" cy="16" r="15" fill="#2d2d2d"/>
-  <rect x="7"  y="7"  width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="14" y="7"  width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="21" y="7"  width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="7"  y="14" width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="14" y="14" width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="21" y="14" width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="7"  y="21" width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="14" y="21" width="4" height="4" rx="0.5" fill="white"/>
-  <rect x="21" y="21" width="4" height="4" rx="0.5" fill="white"/>
+  <!-- WeatherFiles mark: white ring + 3x3 grid, transparent background.
+       Ring and squares share one colour; OpenCPN themes the monochrome glyph. -->
+  <circle cx="16" cy="16" r="14" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <rect x="7"  y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="14" y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="21" y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="7"  y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="14" y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="21" y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="7"  y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="14" y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <rect x="21" y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
 </svg>

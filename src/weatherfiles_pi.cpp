@@ -245,9 +245,19 @@ bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
 
 void weatherfiles_pi::OnToolbarToolCallback(int id)
 {
+    // First run with no token yet: take the user straight to the token-entry
+    // (Preferences) dialog rather than an empty model browser. If they don't
+    // set one, stop here.
+    if (m_token.IsEmpty()) {
+        ShowPreferencesDialog(m_parent_window);
+        if (m_token.IsEmpty()) {
+            SetToolbarItemState(m_weatherfiles_button_id, false);
+            return;
+        }
+    }
+
     // Open the WeatherFiles model browser, defaulting the download area to the
-    // current chart view if we have one. (Token is set via Preferences; the
-    // panel prompts if none is configured.)
+    // current chart view if we have one.
     WfBBox view;
     if (m_last_vp.bValid) {
         view.south = m_last_vp.lat_min;

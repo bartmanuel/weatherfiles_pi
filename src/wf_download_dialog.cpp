@@ -5,7 +5,7 @@
 #include <wx/button.h>
 #include <wx/checklst.h>
 #include <wx/datetime.h>
-#include <wx/filefn.h>
+#include <wx/filefn.h>  // wxDirExists, wxFileName helpers
 #include <wx/filename.h>
 #include <wx/jsonval.h>
 #include <wx/jsonwriter.h>
@@ -164,12 +164,25 @@ void WfDownloadDialog::OnDownload(wxCommandEvent&) {
       return;
     }
   }
-  // Hand the file to OpenCPN's GRIB plugin (no-op if GRIB isn't open).
+  // Hand the file to OpenCPN's GRIB plugin via GRIB_APPLY_JSON_CONFIG. That
+  // message is silently ignored unless the GRIB plugin is enabled with its
+  // control panel open, so make the outcome explicit rather than appearing to
+  // do nothing.
   wxJSONValue cfg;
   cfg[_T("grib_file")] = out;
   wxJSONWriter writer(wxJSONWRITER_NONE);
   wxString body;
   writer.Write(cfg, body);
   SendPluginMessage(_T("GRIB_APPLY_JSON_CONFIG"), body);
-  SetStatus(_("Downloaded and sent to the GRIB display:\n") + out, true);
+
+  const wxString gribDir = GetPluginDataDir("grib_pi");
+  if (gribDir.IsEmpty() || !wxDirExists(gribDir)) {
+    SetStatus(_("Downloaded, but OpenCPN's GRIB plugin was not found - enable it "
+                "to view the data.\nSaved: ") + out, true);
+  } else {
+    SetStatus(_("Downloaded and sent to the GRIB display. If nothing appears, "
+                "enable the GRIB plugin and open its control panel.\nSaved: ") +
+                  out,
+              true);
+  }
 }

@@ -35,6 +35,21 @@ std::vector<wxString> JsonStrArray(wxJSONValue& v) {
   return out;
 }
 
+// Turn an API error response into a readable message: FastAPI puts a string in
+// the "detail" field (e.g. tier/size/no-data errors), so surface that; fall
+// back to the status code.
+wxString WfErrorDetail(const wxString& body, long http) {
+  if (!body.IsEmpty()) {
+    wxJSONValue root;
+    wxJSONReader reader;
+    if (reader.Parse(body, &root) == 0) {
+      wxJSONValue d = root["detail"];
+      if (d.IsString() && !d.AsString().IsEmpty()) return d.AsString();
+    }
+  }
+  return wxString::Format("Server error (HTTP %ld)", http);
+}
+
 #ifndef __WXMSW__
 size_t wfWriteStr(char* ptr, size_t size, size_t nmemb, void* ud) {
   static_cast<std::string*>(ud)->append(ptr, size * nmemb);
@@ -210,8 +225,12 @@ void WfApi::ValidateToken(WfAccountCb cb) {
   wxString body, err;
   const long http = HttpGet("/auth/me", &body, wxEmptyString, &err);
   if (http < 0) { cb(false, WfAccount{}, err); return; }
-  if (http == 401) { cb(false, WfAccount{}, "Unauthorized - check your API token"); return; }
-  if (http != 200) { cb(false, WfAccount{}, wxString::Format("Server error (HTTP %ld)", http)); return; }
+  if (http != 200) {
+    cb(false, WfAccount{},
+       http == 401 ? wxString("Unauthorized - check your API token")
+                   : WfErrorDetail(body, http));
+    return;
+  }
 
   wxJSONValue root;
   wxJSONReader reader;
@@ -233,7 +252,7 @@ void WfApi::FetchModels(WfModelsCb cb) {
   wxString body, err;
   const long http = HttpGet("/models", &body, wxEmptyString, &err);
   if (http < 0) { cb(false, {}, err); return; }
-  if (http != 200) { cb(false, {}, wxString::Format("Server error (HTTP %ld)", http)); return; }
+  if (http != 200) { cb(false, {}, WfErrorDetail(body, http)); return; }
 
   wxJSONValue root;
   wxJSONReader reader;
@@ -270,13 +289,13 @@ void WfApi::DownloadGrib(const wxString& query, const wxString& out_path,
   if (http < 0) { cb(false, err); return; }
   if (http != 200) {
     // The error body was streamed to the file; read it back for the message.
-    wxString detail;
+    wxString body;
     {
       wxFFile f(out_path, "r");
-      if (f.IsOpened()) f.ReadAll(&detail);
+      if (f.IsOpened()) f.ReadAll(&body);
     }
     wxRemoveFile(out_path);
-    cb(false, wxString::Format("HTTP %ld: %s", http, detail));
+    cb(false, WfErrorDetail(body, http));
     return;
   }
   cb(true, "");

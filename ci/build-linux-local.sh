@@ -19,16 +19,32 @@ root=$(cd "$here/.."; pwd)
 IMAGE="${WF_LINUX_IMAGE:-debian:bookworm}"
 echo "Building the Linux plugin in $IMAGE (host arch: $(uname -m))..."
 
+# A Linux plugin must declare the SAME distro/version as the OpenCPN running it,
+# or OpenCPN rejects it as "incompatible". BUILD_ENV + OCPN_TARGET drive that
+# (PluginSetup.cmake): debian -> <target>debian-<arch></target> + version from
+# lsb_release; ubuntu+jammy -> <target>ubuntu-<arch></target>. On Ubuntu, wx3.2
+# isn't in 22.04's repos, so add the OpenCPN PPA (same source as the user's
+# OpenCPN).
 docker run --rm -v "$root":/src -w /src "$IMAGE" bash -ec '
+  set -e
   export DEBIAN_FRONTEND=noninteractive
   apt-get -qq update
+  apt-get -y --no-install-recommends install ca-certificates gnupg \
+    software-properties-common lsb-release >/dev/null
+  if grep -qi ubuntu /etc/os-release; then
+    add-apt-repository -y ppa:opencpn/opencpn
+    apt-get -qq update
+    export BUILD_ENV=ubuntu OCPN_TARGET=jammy
+  else
+    export BUILD_ENV=debian OCPN_TARGET=bookworm
+  fi
   apt-get -y --no-install-recommends install \
     build-essential cmake gettext git pkg-config wx-common \
     libgtk2.0-dev libwxgtk3.2-dev \
     libcurl4-openssl-dev libbz2-dev libexpat1-dev libcairo2-dev \
-    libarchive-dev liblzma-dev libexif-dev libssl-dev lsb-release \
-    >/dev/null
-  export OCPN_TARGET=bookworm WX_VER=32 BUILD_GTK3=true BUILD_ENV=debian
+    libarchive-dev liblzma-dev libexif-dev libssl-dev >/dev/null
+  export WX_VER=32 BUILD_GTK3=true
+  echo "build-env=$BUILD_ENV ocpn-target=$OCPN_TARGET version=$(lsb_release -rs)"
   rm -rf build-linux && mkdir build-linux && cd build-linux
   cmake -DCMAKE_BUILD_TYPE=Release ..
   make -j"$(nproc)"

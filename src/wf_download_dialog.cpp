@@ -14,6 +14,7 @@
 #include <wx/stattext.h>
 #include <wx/stdpaths.h>
 #include <wx/textctrl.h>
+#include <wx/utils.h>  // wxBusyCursor
 
 #include <algorithm>
 
@@ -103,8 +104,8 @@ void WfDownloadDialog::SetStatus(const wxString& text, bool ok) {
   m_status->SetForegroundColour(ok ? wxColour(0x1a, 0x9e, 0x1a)
                                    : wxColour(0xe0, 0x40, 0x40));
   m_status->SetLabel(text);
-  m_status->Refresh();
   Layout();
+  m_status->Update();  // immediate repaint (HTTP calls block the GUI thread)
 }
 
 double WfDownloadDialog::FieldVal(wxTextCtrl* c, double fallback) const {
@@ -151,6 +152,7 @@ void WfDownloadDialog::OnDownload(wxCommandEvent&) {
 
   m_download->Disable();
   SetStatus(_("Downloading..."), true);
+  wxBusyCursor busy;  // DownloadGrib blocks the GUI thread
   m_api.DownloadGrib(query, out, [this, out](bool ok, const wxString& err) {
     m_download->Enable();
     if (!ok) {

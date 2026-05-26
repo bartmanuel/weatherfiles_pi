@@ -229,6 +229,13 @@ endif (OD_JSON_SCHEMA_VALIDATOR)
 
 # ----- If using JSON validation in plugin section above is needed
 
+# ----- libcurl: HTTP client for the WeatherFiles API. wxWebRequest is an
+# optional wx component and is absent on some builds (e.g. Debian's wx3.2), so
+# we use libcurl, which is available on every target (CI installs libcurl-dev;
+# macOS ships it) and supports the Authorization header.
+find_package(CURL REQUIRED)
+target_link_libraries(${PACKAGE_NAME} CURL::libcurl)
+
 if (QT_ANDROID)
 
 endif (QT_ANDROID)

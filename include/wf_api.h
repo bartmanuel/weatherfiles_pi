@@ -3,17 +3,17 @@
 
 // WeatherFiles public-API client for the OpenCPN plugin.
 //
-// Talks to api.weatherfiles.com/v1. HTTP is done with wxWebRequest (wxWidgets
-// 3.2): OpenCPN's OCPN_downloadFile() takes no custom-header parameter, so it
-// can't send the `Authorization: Bearer wf_pat_...` token the API requires for
-// /v1/auth/me and /v1/models. (Later, GRIB downloads from /v1/dl/{token} put
-// the token in the URL and CAN use OCPN_downloadFile.) JSON is parsed with
-// wxJSON, consistent with the rest of the plugin.
+// Talks to api.weatherfiles.com/v1 over HTTPS with libcurl. libcurl is used (not
+// wxWebRequest) because wxWebRequest is an optional wx component and is absent
+// on some builds (e.g. Debian's wx3.2); libcurl is available on every target
+// (the CI installs libcurl-dev; macOS ships it) and supports the Authorization:
+// Bearer header the API requires. JSON is parsed with wxJSON.
 //
-// All requests are asynchronous; result callbacks fire on the main (GUI) thread
-// via the wxWebRequest event, so callers can update widgets directly.
+// Requests are SYNCHRONOUS: each method performs the HTTP call inline and then
+// invokes its callback before returning. The dialogs call these from button
+// handlers / modal loops on the GUI thread, so the callbacks update widgets
+// directly. (Callers should show a wxBusyCursor around the call.)
 
-#include <wx/event.h>
 #include <wx/string.h>
 
 #include <functional>
@@ -52,7 +52,7 @@ using WfAccountCb = std::function<void(bool ok, const WfAccount&, const wxString
 using WfModelsCb = std::function<void(bool ok, const std::vector<WfModel>&, const wxString& err)>;
 using WfDownloadCb = std::function<void(bool ok, const wxString& err)>;
 
-class WfApi : public wxEvtHandler {
+class WfApi {
  public:
   explicit WfApi(const wxString& token,
                  const wxString& base_url = "https://api.weatherfiles.com/v1");
@@ -72,20 +72,14 @@ class WfApi : public wxEvtHandler {
                     WfDownloadCb on_result);
 
  private:
-  // Issues an authenticated GET to base_url + path; `cb` is invoked on the GUI
-  // thread with (ok, body, http_status, err).
-  using RawCb = std::function<void(bool ok, const wxString& body, int status, const wxString& err)>;
-  void StartGet(const wxString& path, RawCb cb);
-  void OnState(class wxWebRequestEvent& evt);
+  // Synchronous authenticated GET of base_url + path. If out_file is non-empty
+  // the body is streamed to that file; otherwise it's returned in *out_body.
+  // Returns the HTTP status, or -1 on a transport error (with err set).
+  long HttpGet(const wxString& path, wxString* out_body,
+               const wxString& out_file, wxString* err);
 
   wxString m_token;
   wxString m_base_url;
-  // Single request in flight at a time (the plugin calls these sequentially).
-  // Bound once in the ctor. Either a JSON GET (m_pending) or a file download
-  // (m_pending_dl) is active, never both.
-  RawCb m_pending;
-  WfDownloadCb m_pending_dl;
-  wxString m_dl_out_path;
 };
 
 #endif  // WF_API_H

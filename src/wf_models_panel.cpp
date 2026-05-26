@@ -9,6 +9,7 @@
 #include <wx/listctrl.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/utils.h>  // wxBusyCursor
 
 #include <algorithm>
 
@@ -96,8 +97,8 @@ void WfModelsPanel::SetStatus(const wxString& text, bool ok) {
   m_status->SetForegroundColour(ok ? wxColour(0x1a, 0x9e, 0x1a)
                                    : wxColour(0xe0, 0x40, 0x40));
   m_status->SetLabel(text);
-  m_status->Refresh();
   Layout();
+  m_status->Update();  // immediate repaint (HTTP calls block the GUI thread)
 }
 
 void WfModelsPanel::OnRefresh(wxCommandEvent&) { Load(); }
@@ -110,9 +111,9 @@ void WfModelsPanel::Load() {
   }
   m_refresh->Disable();
   SetStatus(_("Loading account..."), true);
+  wxBusyCursor busy;  // the calls below block the GUI thread
 
-  // Single request in flight at a time, so chain: account (for tier gating),
-  // then the model catalogue.
+  // Chain: account (for tier gating), then the model catalogue.
   m_api.ValidateToken(
       [this](bool ok, const WfAccount& acct, const wxString& err) {
         if (!ok) {

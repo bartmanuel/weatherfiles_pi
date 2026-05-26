@@ -9,6 +9,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/utils.h>  // wxBusyCursor
 
 enum { ID_WF_VALIDATE = wxID_HIGHEST + 1 };
 
@@ -56,8 +57,8 @@ void WfPrefsDialog::SetStatus(const wxString& text, bool ok) {
   m_status->SetForegroundColour(ok ? wxColour(0x1a, 0x9e, 0x1a)
                                    : wxColour(0xe0, 0x40, 0x40));
   m_status->SetLabel(text);
-  m_status->Refresh();  // force a repaint of the recoloured label (macOS)
   Layout();
+  m_status->Update();  // immediate repaint (HTTP calls block the GUI thread)
 }
 
 void WfPrefsDialog::OnValidate(wxCommandEvent&) {
@@ -69,6 +70,7 @@ void WfPrefsDialog::OnValidate(wxCommandEvent&) {
   m_api.SetToken(tok);
   m_validate_btn->Disable();
   SetStatus(_("Validating..."), true);
+  wxBusyCursor busy;  // the call below blocks the GUI thread
   m_api.ValidateToken(
       [this](bool ok, const WfAccount& acct, const wxString& err) {
         m_validate_btn->Enable();

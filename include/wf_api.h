@@ -51,6 +51,10 @@ struct WfAccount {
 using WfAccountCb = std::function<void(bool ok, const WfAccount&, const wxString& err)>;
 using WfModelsCb = std::function<void(bool ok, const std::vector<WfModel>&, const wxString& err)>;
 using WfDownloadCb = std::function<void(bool ok, const wxString& err)>;
+// Download progress: (bytes so far, total bytes or 0 if unknown). Return false
+// to abort the transfer. May be called on a worker thread, so it must only
+// touch thread-safe state (no GUI).
+using WfProgressCb = std::function<bool(long bytes, long total)>;
 
 class WfApi {
  public:
@@ -68,15 +72,18 @@ class WfApi {
 
   // GET /v1/grib<query> - one-shot sliceless download streamed to `out_path`.
   // `query` is the path+query starting with "/grib?..." (caller builds it).
+  // `on_progress` (optional) reports bytes/total during the transfer and can
+  // abort it. Synchronous (blocks); callers thread it for a live UI.
   void DownloadGrib(const wxString& query, const wxString& out_path,
-                    WfDownloadCb on_result);
+                    WfDownloadCb on_result, WfProgressCb on_progress = nullptr);
 
  private:
   // Synchronous authenticated GET of base_url + path. If out_file is non-empty
   // the body is streamed to that file; otherwise it's returned in *out_body.
   // Returns the HTTP status, or -1 on a transport error (with err set).
   long HttpGet(const wxString& path, wxString* out_body,
-               const wxString& out_file, wxString* err);
+               const wxString& out_file, wxString* err,
+               const WfProgressCb& on_progress = WfProgressCb());
 
   wxString m_token;
   wxString m_base_url;

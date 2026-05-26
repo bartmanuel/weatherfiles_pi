@@ -4,9 +4,11 @@ src/wf_api.cpp
 src/wf_prefs_dialog.cpp
 src/wf_models_panel.cpp
 src/wf_download_dialog.cpp
+src/wf_download_progress.cpp
 include/weatherfiles_pi.h
 include/tpicons.h
 include/wf_api.h
 include/wf_prefs_dialog.h
 include/wf_models_panel.h
 include/wf_download_dialog.h
+include/wf_download_progress.h

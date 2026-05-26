@@ -182,7 +182,7 @@ add_definitions(-DUSE_S57)
 
 set(SRCS src/tpicons.cpp src/weatherfiles_pi.cpp
          src/wf_api.cpp src/wf_prefs_dialog.cpp src/wf_models_panel.cpp
-         src/wf_download_dialog.cpp
+         src/wf_download_dialog.cpp src/wf_download_progress.cpp
 )
 
 set(HDRS
@@ -192,6 +192,7 @@ set(HDRS
     include/wf_prefs_dialog.h
     include/wf_models_panel.h
     include/wf_download_dialog.h
+    include/wf_download_progress.h
 )
 
 add_definitions(-DPLUGIN_USE_SVG)
@@ -240,6 +241,10 @@ else (WIN32)
   find_package(CURL REQUIRED)
   target_link_libraries(${PACKAGE_NAME} CURL::libcurl)
 endif (WIN32)
+
+# std::thread (download progress dialog) needs pthread on Linux.
+find_package(Threads REQUIRED)
+target_link_libraries(${PACKAGE_NAME} Threads::Threads)
 
 if (QT_ANDROID)
 

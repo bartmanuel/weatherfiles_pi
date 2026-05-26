@@ -43,6 +43,14 @@ size_t wfWriteStr(char* ptr, size_t size, size_t nmemb, void* ud) {
 size_t wfWriteFile(char* ptr, size_t size, size_t nmemb, void* ud) {
   return fwrite(ptr, size, nmemb, static_cast<FILE*>(ud));
 }
+int wfXferInfo(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t,
+               curl_off_t) {
+  const WfProgressCb* cb = static_cast<const WfProgressCb*>(clientp);
+  if (cb && *cb &&
+      !(*cb)(static_cast<long>(dlnow), static_cast<long>(dltotal)))
+    return 1;  // non-zero aborts the transfer
+  return 0;
+}
 #endif
 
 }  // namespace
@@ -53,7 +61,8 @@ WfApi::WfApi(const wxString& token, const wxString& base_url)
 #ifdef __WXMSW__
 
 long WfApi::HttpGet(const wxString& path, wxString* out_body,
-                    const wxString& out_file, wxString* err) {
+                    const wxString& out_file, wxString* err,
+                    const WfProgressCb& on_progress) {
   const std::wstring url = (m_base_url + path).ToStdWstring();
 
   URL_COMPONENTS uc;
@@ -93,9 +102,19 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
         WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
         WINHTTP_HEADER_NAME_BY_INDEX, &status, &slen, WINHTTP_NO_HEADER_INDEX);
 
+    long total = 0;
+    {
+      wchar_t cl[32] = {0};
+      DWORD cllen = sizeof(cl);
+      if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_CONTENT_LENGTH,
+              WINHTTP_HEADER_NAME_BY_INDEX, cl, &cllen, WINHTTP_NO_HEADER_INDEX))
+        total = static_cast<long>(_wtol(cl));
+    }
+
     FILE* fp = nullptr;
     std::string body;
     if (!out_file.IsEmpty()) fp = _wfopen(out_file.ToStdWstring().c_str(), L"wb");
+    long got = 0;
     DWORD avail = 0;
     do {
       avail = 0;
@@ -105,6 +124,8 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
       if (!WinHttpReadData(hRequest, &chunk[0], avail, &read) || read == 0) break;
       if (fp) fwrite(chunk.data(), 1, read, fp);
       else body.append(chunk.data(), read);
+      got += static_cast<long>(read);
+      if (on_progress && !on_progress(got, total)) break;  // aborted
     } while (avail > 0);
     if (fp) fclose(fp);
     result = static_cast<long>(status);
@@ -122,9 +143,10 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
 #else  // libcurl (macOS / Linux)
 
 long WfApi::HttpGet(const wxString& path, wxString* out_body,
-                    const wxString& out_file, wxString* err) {
+                    const wxString& out_file, wxString* err,
+                    const WfProgressCb& on_progress) {
   static bool s_curl_inited = false;
-  if (!s_curl_inited) {  // single-threaded (GUI), so this guard is safe
+  if (!s_curl_inited) {  // first call is on the GUI thread, so this is safe
     curl_global_init(CURL_GLOBAL_DEFAULT);
     s_curl_inited = true;
   }
@@ -144,6 +166,12 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "weatherfiles_pi");
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 180L);
   curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  if (on_progress) {
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, wfXferInfo);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA,
+                     const_cast<WfProgressCb*>(&on_progress));
+  }
 
   std::string body;
   FILE* fp = nullptr;
@@ -236,9 +264,9 @@ void WfApi::FetchModels(WfModelsCb cb) {
 }
 
 void WfApi::DownloadGrib(const wxString& query, const wxString& out_path,
-                         WfDownloadCb cb) {
+                         WfDownloadCb cb, WfProgressCb on_progress) {
   wxString err;
-  const long http = HttpGet(query, nullptr, out_path, &err);
+  const long http = HttpGet(query, nullptr, out_path, &err, on_progress);
   if (http < 0) { cb(false, err); return; }
   if (http != 200) {
     // The error body was streamed to the file; read it back for the message.

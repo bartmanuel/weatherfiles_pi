@@ -19,6 +19,7 @@
 #include <algorithm>
 
 #include "ocpn_plugin.h"  // SendPluginMessage
+#include "wf_download_progress.h"
 
 enum { ID_WF_DOWNLOAD = wxID_HIGHEST + 20 };
 
@@ -151,21 +152,24 @@ void WfDownloadDialog::OnDownload(wxCommandEvent&) {
       wxFileName(dir, m_model.id + "_" + ts + ".grib2").GetFullPath();
 
   m_download->Disable();
-  SetStatus(_("Downloading..."), true);
-  wxBusyCursor busy;  // DownloadGrib blocks the GUI thread
-  m_api.DownloadGrib(query, out, [this, out](bool ok, const wxString& err) {
+  {
+    // Threaded download with a live progress dialog (prep timer -> KB counter).
+    WfDownloadProgress dlg(this, m_api.Token(), query, out);
+    const int r = dlg.ShowModal();
     m_download->Enable();
-    if (!ok) {
-      SetStatus(_("Download failed: ") + err, false);
+    if (r != wxID_OK) {
+      SetStatus(dlg.Cancelled() ? _("Download cancelled.")
+                                : _("Download failed: ") + dlg.Error(),
+                false);
       return;
     }
-    // Hand the file to OpenCPN's GRIB plugin (no-op if GRIB isn't open).
-    wxJSONValue cfg;
-    cfg[_T("grib_file")] = out;
-    wxJSONWriter writer(wxJSONWRITER_NONE);
-    wxString body;
-    writer.Write(cfg, body);
-    SendPluginMessage(_T("GRIB_APPLY_JSON_CONFIG"), body);
-    SetStatus(_("Downloaded and sent to the GRIB display:\n") + out, true);
-  });
+  }
+  // Hand the file to OpenCPN's GRIB plugin (no-op if GRIB isn't open).
+  wxJSONValue cfg;
+  cfg[_T("grib_file")] = out;
+  wxJSONWriter writer(wxJSONWRITER_NONE);
+  wxString body;
+  writer.Write(cfg, body);
+  SendPluginMessage(_T("GRIB_APPLY_JSON_CONFIG"), body);
+  SetStatus(_("Downloaded and sent to the GRIB display:\n") + out, true);
 }

@@ -1,4 +1,11 @@
-// WeatherFiles API client implementation (libcurl). See wf_api.h.
+// WeatherFiles API client implementation. See wf_api.h.
+//
+// HTTP uses each platform's natively-available client: libcurl on macOS/Linux
+// (the CI installs libcurl-dev; macOS ships it) and WinHTTP on Windows (a
+// system API). wxWebRequest is avoided because it's an optional wx component
+// absent on some builds (Debian's wx3.2); libcurl dev libs aren't in the
+// Windows build env either. Both paths are synchronous and share the JSON
+// parsing + endpoint logic below.
 
 #include "wf_api.h"
 
@@ -7,21 +14,17 @@
 #include <wx/jsonreader.h>
 #include <wx/jsonval.h>
 
-#include <curl/curl.h>
-
 #include <cstdio>
 #include <string>
 
+#ifdef __WXMSW__
+#include <windows.h>
+#include <winhttp.h>
+#else
+#include <curl/curl.h>
+#endif
+
 namespace {
-
-size_t wfWriteStr(char* ptr, size_t size, size_t nmemb, void* ud) {
-  static_cast<std::string*>(ud)->append(ptr, size * nmemb);
-  return size * nmemb;
-}
-
-size_t wfWriteFile(char* ptr, size_t size, size_t nmemb, void* ud) {
-  return fwrite(ptr, size, nmemb, static_cast<FILE*>(ud));
-}
 
 // Pull a list of strings out of a wxJSON array. Non-const ref: this wxJSON's
 // operator[] has no const overload (see ocpninclude/wx/jsonval.h).
@@ -32,10 +35,91 @@ std::vector<wxString> JsonStrArray(wxJSONValue& v) {
   return out;
 }
 
+#ifndef __WXMSW__
+size_t wfWriteStr(char* ptr, size_t size, size_t nmemb, void* ud) {
+  static_cast<std::string*>(ud)->append(ptr, size * nmemb);
+  return size * nmemb;
+}
+size_t wfWriteFile(char* ptr, size_t size, size_t nmemb, void* ud) {
+  return fwrite(ptr, size, nmemb, static_cast<FILE*>(ud));
+}
+#endif
+
 }  // namespace
 
 WfApi::WfApi(const wxString& token, const wxString& base_url)
     : m_token(token), m_base_url(base_url) {}
+
+#ifdef __WXMSW__
+
+long WfApi::HttpGet(const wxString& path, wxString* out_body,
+                    const wxString& out_file, wxString* err) {
+  const std::wstring url = (m_base_url + path).ToStdWstring();
+
+  URL_COMPONENTS uc;
+  ZeroMemory(&uc, sizeof(uc));
+  uc.dwStructSize = sizeof(uc);
+  wchar_t host[256] = {0};
+  wchar_t urlpath[4096] = {0};
+  uc.lpszHostName = host;   uc.dwHostNameLength = 255;
+  uc.lpszUrlPath = urlpath; uc.dwUrlPathLength = 4095;
+  if (!WinHttpCrackUrl(url.c_str(), 0, 0, &uc)) {
+    if (err) *err = "Bad URL"; return -1;
+  }
+
+  HINTERNET hSession = WinHttpOpen(L"weatherfiles_pi",
+      WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
+      WINHTTP_NO_PROXY_BYPASS, 0);
+  if (!hSession) { if (err) *err = "WinHttpOpen failed"; return -1; }
+  HINTERNET hConnect = WinHttpConnect(hSession, host, uc.nPort, 0);
+  if (!hConnect) { WinHttpCloseHandle(hSession); if (err) *err = "WinHttpConnect failed"; return -1; }
+  const DWORD secure = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
+  HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", urlpath, NULL,
+      WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, secure);
+  if (!hRequest) {
+    WinHttpCloseHandle(hConnect); WinHttpCloseHandle(hSession);
+    if (err) *err = "WinHttpOpenRequest failed"; return -1;
+  }
+
+  const std::wstring auth = L"Authorization: Bearer " + m_token.ToStdWstring();
+  WinHttpAddRequestHeaders(hRequest, auth.c_str(), (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
+
+  long result = -1;
+  if (WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+                         WINHTTP_NO_REQUEST_DATA, 0, 0, 0) &&
+      WinHttpReceiveResponse(hRequest, NULL)) {
+    DWORD status = 0, slen = sizeof(status);
+    WinHttpQueryHeaders(hRequest,
+        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+        WINHTTP_HEADER_NAME_BY_INDEX, &status, &slen, WINHTTP_NO_HEADER_INDEX);
+
+    FILE* fp = nullptr;
+    std::string body;
+    if (!out_file.IsEmpty()) fp = _wfopen(out_file.ToStdWstring().c_str(), L"wb");
+    DWORD avail = 0;
+    do {
+      avail = 0;
+      if (!WinHttpQueryDataAvailable(hRequest, &avail) || avail == 0) break;
+      std::string chunk(avail, '\0');
+      DWORD read = 0;
+      if (!WinHttpReadData(hRequest, &chunk[0], avail, &read) || read == 0) break;
+      if (fp) fwrite(chunk.data(), 1, read, fp);
+      else body.append(chunk.data(), read);
+    } while (avail > 0);
+    if (fp) fclose(fp);
+    result = static_cast<long>(status);
+    if (out_body) *out_body = wxString::FromUTF8(body.c_str());
+  } else if (err) {
+    *err = "Network error contacting api.weatherfiles.com";
+  }
+
+  WinHttpCloseHandle(hRequest);
+  WinHttpCloseHandle(hConnect);
+  WinHttpCloseHandle(hSession);
+  return result;
+}
+
+#else  // libcurl (macOS / Linux)
 
 long WfApi::HttpGet(const wxString& path, wxString* out_body,
                     const wxString& out_file, wxString* err) {
@@ -46,10 +130,7 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
   }
 
   CURL* curl = curl_easy_init();
-  if (!curl) {
-    if (err) *err = "curl init failed";
-    return -1;
-  }
+  if (!curl) { if (err) *err = "curl init failed"; return -1; }
 
   const std::string url = (m_base_url + path).utf8_string();
   const std::string auth = "Authorization: Bearer " + m_token.utf8_string();
@@ -69,8 +150,7 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
   if (!out_file.IsEmpty()) {
     fp = fopen(out_file.utf8_string().c_str(), "wb");
     if (!fp) {
-      curl_slist_free_all(hdrs);
-      curl_easy_cleanup(curl);
+      curl_slist_free_all(hdrs); curl_easy_cleanup(curl);
       if (err) *err = "Cannot open output file: " + out_file;
       return -1;
     }
@@ -95,6 +175,8 @@ long WfApi::HttpGet(const wxString& path, wxString* out_body,
   if (out_body) *out_body = wxString::FromUTF8(body.c_str());
   return http;
 }
+
+#endif  // __WXMSW__
 
 void WfApi::ValidateToken(WfAccountCb cb) {
   wxString body, err;

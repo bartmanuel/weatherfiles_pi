@@ -16,8 +16,11 @@
 #include "wf_models_panel.h"
 #include "wf_download_dialog.h"
 
-#ifdef __WXOSX__
+#if defined(__WXOSX__)
 #include <OpenGL/gl.h>
+#elif defined(__WXMSW__)
+#include <windows.h>   // must precede GL/gl.h on MSVC (WINGDIAPI/APIENTRY)
+#include <GL/gl.h>
 #else
 #include <GL/gl.h>
 #endif

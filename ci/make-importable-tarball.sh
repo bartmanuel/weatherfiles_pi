@@ -28,7 +28,9 @@ META="$(ls -1t *.xml 2>/dev/null | head -1 || true)"
 rm -rf _import && mkdir _import
 tar -C _import -xzf "$TARBALL"
 echo "make-importable: extracted payload (depth 2):"
-( cd _import && find . -maxdepth 2 | sed 's|^\./||' | grep -v '^$' | head -30 )
+# '|| true' guards against SIGPIPE (141) from head closing the pipe under
+# 'set -o pipefail' — these listings are informational only.
+( cd _import && find . -maxdepth 2 | sed 's|^\./||' | grep -v '^$' | head -30 ) || true
 
 # Payload root: CPack archives wrap everything in a single top-level dir (the
 # package-name prefix). metadata.xml must sit inside it, alongside the platform
@@ -49,4 +51,4 @@ tar -C "$ROOT" -czf "$IMPORT" .
 
 echo "make-importable: wrote $BUILD/$IMPORT"
 echo "make-importable: contents (head):"
-tar -tzf "$IMPORT" | sed 's|^|  |' | head -20
+tar -tzf "$IMPORT" | sed 's|^|  |' | head -20 || true

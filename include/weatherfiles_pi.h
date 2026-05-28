@@ -20,10 +20,13 @@
 #include <wx/fileconf.h>
 #include <wx/gdicmn.h>   // wxPoint
 
+#include <functional>
+
 #include "globals.h"
 #include "wf_api.h"      // WfModel, WfBBox
 
 class tpicons;
+class WfMultiSliceDialog;
 
 //----------------------------------------------------------------------------
 //    The PlugIn Class Definition
@@ -76,6 +79,20 @@ public:
     // is interactive.
     void StartAreaPick(const WfModel& model);
 
+    // Generic on-chart area pick: rubber-band a box and invoke `cb` with it on
+    // release. The multi-slice dialog uses this to refill its bbox without
+    // closing. `cb` is invoked on the GUI thread.
+    void StartAreaPickMulti(std::function<void(const WfBBox&)> cb);
+
+    // Called by WfMultiSliceDialog in its destructor so the plugin can clear
+    // its held pointer.
+    void ClearMultiDialog(WfMultiSliceDialog* dlg);
+
+    // The currently-open multi-slice dialog or null. Pick callbacks query
+    // this rather than capturing the dialog directly, so a dialog destroyed
+    // between mouse-release and CallAfter dispatch is a safe no-op.
+    WfMultiSliceDialog* MultiDialog() const { return m_multi_dialog; }
+
     // WeatherFiles API personal access token. Public so the dialogs can read it
     // (set via ShowPreferencesDialog, persisted in the OpenCPN config).
     wxString m_token;
@@ -87,15 +104,22 @@ private:
     wxWindow     *m_parent_window;
     wxFileConfig *m_pTPConfig;
     tpicons      *m_ptpicons;
-    int           m_weatherfiles_button_id;
+    int           m_weatherfiles_button_id;       // model browser
+    int           m_weatherfiles_multi_button_id; // area-first multi-slice
     PlugIn_ViewPort m_last_vp;   // most recent chart view (bValid until set)
 
     // On-chart area-pick state.
-    bool     m_picking = false;   // in pick mode (armed by StartAreaPick)
+    bool     m_picking = false;   // in pick mode (armed by Start*Pick)
     bool     m_dragging = false;  // a left-drag is in progress
     wxPoint  m_pick_start;        // drag anchor (canvas pixels)
     wxPoint  m_pick_cur;          // current drag point (canvas pixels)
-    WfModel  m_pending_model;     // model to download once the box is drawn
+    // What to do with the box on release. Set by StartAreaPick (single-model
+    // download dialog) or StartAreaPickMulti (callback into the multi-slice
+    // dialog). Cleared after firing.
+    std::function<void(const WfBBox&)> m_pick_cb;
+
+    // The modeless multi-slice dialog (null when not open).
+    WfMultiSliceDialog* m_multi_dialog = nullptr;
 };
 
 #endif  // _WEATHERFILESPI_H_

@@ -15,6 +15,7 @@
 #include "wf_prefs_dialog.h"
 #include "wf_models_panel.h"
 #include "wf_download_dialog.h"
+#include "wf_multi_slice_dialog.h"
 
 #if defined(__WXOSX__)
 #include <OpenGL/gl.h>
@@ -62,6 +63,7 @@ weatherfiles_pi::weatherfiles_pi(void *ppimgr)
     m_parent_window = nullptr;
     m_pTPConfig = nullptr;
     m_weatherfiles_button_id = -1;
+    m_weatherfiles_multi_button_id = -1;
     m_last_vp.bValid = false;
     m_ptpicons = new tpicons();   // loads the toolbar/plugin icons
 }
@@ -84,13 +86,27 @@ int weatherfiles_pi::Init(void)
     m_weatherfiles_button_id = InsertPlugInToolSVG(
         _("WeatherFiles"), m_ptpicons->m_s_weatherfiles_grey_pi,
         m_ptpicons->m_s_weatherfiles_pi, m_ptpicons->m_s_weatherfiles_toggled_pi,
-        wxITEM_CHECK, _("WeatherFiles"), wxS(""), NULL, weatherfiles_POSITION, 0,
-        this);
+        wxITEM_CHECK, _("WeatherFiles: browse models"), wxS(""), NULL,
+        weatherfiles_POSITION, 0, this);
+    // Second toolbar tool: area-first multi-slice downloader. Same icons for
+    // now (tooltips disambiguate); replace with a distinct SVG when one
+    // exists.
+    m_weatherfiles_multi_button_id = InsertPlugInToolSVG(
+        _("WeatherFiles slice"), m_ptpicons->m_s_weatherfiles_grey_pi,
+        m_ptpicons->m_s_weatherfiles_pi, m_ptpicons->m_s_weatherfiles_toggled_pi,
+        wxITEM_CHECK, _("WeatherFiles: area-first multi-slice download"),
+        wxS(""), NULL, weatherfiles_POSITION, 0, this);
 #else
     m_weatherfiles_button_id = InsertPlugInTool(
         _("WeatherFiles"), &m_ptpicons->m_bm_weatherfiles_grey_pi,
-        &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK, _("WeatherFiles"),
-        wxS(""), NULL, weatherfiles_POSITION, 0, this);
+        &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK,
+        _("WeatherFiles: browse models"), wxS(""), NULL, weatherfiles_POSITION,
+        0, this);
+    m_weatherfiles_multi_button_id = InsertPlugInTool(
+        _("WeatherFiles slice"), &m_ptpicons->m_bm_weatherfiles_grey_pi,
+        &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK,
+        _("WeatherFiles: area-first multi-slice download"), wxS(""), NULL,
+        weatherfiles_POSITION, 0, this);
 #endif
 
     return (INSTALLS_TOOLBAR_TOOL | WANTS_TOOLBAR_CALLBACK | WANTS_PREFERENCES |
@@ -101,6 +117,13 @@ int weatherfiles_pi::Init(void)
 bool weatherfiles_pi::DeInit(void)
 {
     if (m_pTPConfig) SaveConfig();
+    // Tear down the modeless multi-slice dialog before the plugin (and its
+    // captured callback state) goes away. Destroy() runs the dialog's dtor,
+    // which clears m_multi_dialog via ClearMultiDialog().
+    if (m_multi_dialog) {
+        m_multi_dialog->Destroy();
+        m_multi_dialog = nullptr;
+    }
     return true;
 }
 
@@ -120,7 +143,7 @@ wxString weatherfiles_pi::GetCommonName()       { return _T(PLUGIN_COMMON_NAME);
 wxString weatherfiles_pi::GetShortDescription() { return _(PLUGIN_SHORT_DESCRIPTION); }
 wxString weatherfiles_pi::GetLongDescription()  { return _(PLUGIN_LONG_DESCRIPTION); }
 
-int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
+int weatherfiles_pi::GetToolbarToolCount(void) { return 2; }
 
 bool weatherfiles_pi::RenderOverlayMultiCanvas(wxDC& dc, PlugIn_ViewPort* vp,
                                                int canvas_ix, int priority)
@@ -171,8 +194,36 @@ void weatherfiles_pi::SetCurrentViewPort(PlugIn_ViewPort& vp)
 
 void weatherfiles_pi::StartAreaPick(const WfModel& model)
 {
-    m_pending_model = model;
+    // Build a callback that opens the single-model download dialog with the
+    // box. Captures by value so the model survives this scope and the user's
+    // chart-interaction time.
+    const WfModel m = model;
+    const wxString token = m_token;
+    wxWindow* parent = m_parent_window;
+    m_pick_cb = [parent, m, token](const WfBBox& box) {
+        WfDownloadDialog dlg(parent, m, box, token);
+        dlg.ShowModal();
+    };
     m_picking = true;
+    m_dragging = false;
+}
+
+void weatherfiles_pi::StartAreaPickMulti(std::function<void(const WfBBox&)> cb)
+{
+    m_pick_cb = std::move(cb);
+    m_picking = true;
+    m_dragging = false;
+}
+
+void weatherfiles_pi::ClearMultiDialog(WfMultiSliceDialog* dlg)
+{
+    if (m_multi_dialog != dlg) return;
+    m_multi_dialog = nullptr;
+    // Don't leave a pick armed if its callback was rooted in this dialog.
+    // Single-model picks capture by value and are unaffected if reinstated
+    // later; the worst case is the user has to re-arm. Cheap and safe.
+    m_pick_cb = nullptr;
+    m_picking = false;
     m_dragging = false;
 }
 
@@ -229,15 +280,11 @@ bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
         if (box.north - box.south < 0.01 || box.east - box.west < 0.01)
             return true;
 
-        // Open the download dialog after this event finishes dispatching.
-        const WfModel model = m_pending_model;
-        const wxString token = m_token;
-        wxWindow* parent = m_parent_window;
-        // Open the dialog after this mouse event finishes dispatching.
-        wxTheApp->CallAfter([parent, model, box, token]() {
-            WfDownloadDialog dlg(parent, model, box, token);
-            dlg.ShowModal();
-        });
+        // Fire the pick callback after this event finishes dispatching, so
+        // any UI work it does (opening dialogs etc.) runs cleanly.
+        auto cb = m_pick_cb;
+        m_pick_cb = nullptr;
+        if (cb) wxTheApp->CallAfter([cb, box]() { cb(box); });
         return true;
     }
     return false;
@@ -246,18 +293,17 @@ bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
 void weatherfiles_pi::OnToolbarToolCallback(int id)
 {
     // First run with no token yet: take the user straight to the token-entry
-    // (Preferences) dialog rather than an empty model browser. If they don't
-    // set one, stop here.
+    // (Preferences) dialog rather than an empty UI. If they don't set one,
+    // stop here.
     if (m_token.IsEmpty()) {
         ShowPreferencesDialog(m_parent_window);
         if (m_token.IsEmpty()) {
-            SetToolbarItemState(m_weatherfiles_button_id, false);
+            SetToolbarItemState(id, false);
             return;
         }
     }
 
-    // Open the WeatherFiles model browser, defaulting the download area to the
-    // current chart view if we have one.
+    // Default the area to the current chart view if we have one.
     WfBBox view;
     if (m_last_vp.bValid) {
         view.south = m_last_vp.lat_min;
@@ -266,9 +312,24 @@ void weatherfiles_pi::OnToolbarToolCallback(int id)
         view.east = m_last_vp.lon_max;
         view.valid = true;
     }
+
+    if (id == m_weatherfiles_multi_button_id) {
+        // Area-first multi-slice download (modeless).
+        if (m_multi_dialog) {
+            m_multi_dialog->Raise();
+        } else {
+            m_multi_dialog =
+                new WfMultiSliceDialog(m_parent_window, m_token, view, this);
+            m_multi_dialog->Show();
+        }
+        SetToolbarItemState(id, false);
+        return;
+    }
+
+    // Otherwise: model browser (single-model download).
     WfModelsPanel dlg(m_parent_window, m_token, view, this);
     dlg.ShowModal();
-    SetToolbarItemState(m_weatherfiles_button_id, false);
+    SetToolbarItemState(id, false);
 }
 
 void weatherfiles_pi::ShowPreferencesDialog(wxWindow* parent)

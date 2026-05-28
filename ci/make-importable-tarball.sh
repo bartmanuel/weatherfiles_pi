@@ -47,7 +47,21 @@ echo "make-importable: payload root = $ROOT"
 cp "$META" "$ROOT/metadata.xml"
 
 IMPORT="${TARBALL%.tar.gz}-import.tar.gz"
-tar -C "$ROOT" -czf "$IMPORT" .
+
+# Windows tarballs need the top-level wrapper directory preserved.
+# OpenCPN's plugin_handler::win_entry_set_install_path (model/src/
+# plugin_handler.cpp) strips ONE leading path component from each entry,
+# then matches the remainder against ".dll"/".exe", "share/", or
+# "plugins/" to route it. Without the wrapper, "plugins/<name>/data/..."
+# is mis-stripped to "<name>/data/..." which matches no rule and falls
+# through to the OpenCPN install root (Program Files, admin-only).
+# macOS/Linux handlers tolerate a flat root, so they keep the original
+# wrapper-stripped layout.
+case "$TARBALL" in
+  *win32*|*msvc*) TAR_FROM=_import ;;   # keep the wrapper
+  *)              TAR_FROM=$ROOT  ;;    # strip it (mac/Linux)
+esac
+tar -C "$TAR_FROM" -czf "$IMPORT" .
 
 echo "make-importable: wrote $BUILD/$IMPORT"
 echo "make-importable: contents (head):"

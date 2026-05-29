@@ -1,6 +1,8 @@
+build/
 cmake-build*
 .directory
 po/POTFILES.in.test
 temp
 tmp
 master.zip
+build-linux/

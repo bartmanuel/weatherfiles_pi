@@ -4,7 +4,11 @@ version: 2.1
 parameters:
     run_workflow_deploy:
         type: boolean
-        default: true
+        # Build-only until Cloudsmith publishing is set up (deferred operator
+        # task: CLOUDSMITH_API_KEY + Apple signing). Every `deploy-code` step is
+        # gated on this, so `false` skips all upload steps and CI just compiles.
+        # Flip back to `true` once the package repo + signing creds exist.
+        default: false
 
 std-filters: &std-filters
     filters:
@@ -18,53 +22,58 @@ std-filters: &std-filters
 workflows:
     build_all:
         jobs:
-## --------------------
-## OpenCPN 5.8 Plugins
-## ----------------------
-          - build-android-arm64:
-              <<: *std-filters
-          - build-android-armhf:
-                <<: *std-filters
-          - build-flatpak-aarch64-2208:
-              <<: *std-filters
-          - build-flatpak-x86-2208:
-              <<: *std-filters
-          - build-flatpak-aarch64-2408:
-              <<: *std-filters
-          - build-flatpak-x86-2408:
-              <<: *std-filters
-          - build-msvc-wx32-2022:
-              <<: *std-filters
-          - build-debian-armhf-13-trixie:
-              <<: *std-filters
-          - build-debian-arm64-13-trixie:
-              <<: *std-filters
-          - build-debian-x86_64-13-trixie:
-              <<: *std-filters
-          - build-debian-arm64-12-bookworm:
-              <<: *std-filters
-          - build-debian-armhf-12-bookworm:
-              <<: *std-filters
+## --------------------------------------------------------------------------
+## Initial CI bring-up (2026-05): trimmed to the three mainstream desktop
+## targets so the first runs are fast/cheap and exercise the platforms our
+## users actually run (Linux x86_64, macOS-universal, Windows wx32). The full
+## platform matrix below is commented out — uncomment to restore once the
+## plugin builds clean and we're ready to publish all targets. Every job
+## definition further down is left intact; only this run-list is trimmed.
+## --------------------------------------------------------------------------
           - build-debian-x86_64-12-bookworm:
-              <<: *std-filters
-          - build-debian-armhf-11-bullseye:
-              <<: *std-filters
-          - build-debian-arm64-11-bullseye:
-              <<: *std-filters
-          - build-debian-x86_64-11-bullseye:
-             <<: *std-filters
-## KEEP needed for Jammy with wx32
-          - build-ubuntu-x86_64-2204-jammy:
               <<: *std-filters
           - build-macos-universal:
               <<: *std-filters
-
+          - build-msvc-wx32-2022:
+              <<: *std-filters
+## --- full matrix (restore later) ------------------------------------------
+#          - build-android-arm64:
+#              <<: *std-filters
+#          - build-android-armhf:
+#                <<: *std-filters
+#          - build-flatpak-aarch64-2208:
+#              <<: *std-filters
+#          - build-flatpak-x86-2208:
+#              <<: *std-filters
+#          - build-flatpak-aarch64-2408:
+#              <<: *std-filters
+#          - build-flatpak-x86-2408:
+#              <<: *std-filters
+#          - build-debian-armhf-13-trixie:
+#              <<: *std-filters
+#          - build-debian-arm64-13-trixie:
+#              <<: *std-filters
+#          - build-debian-x86_64-13-trixie:
+#              <<: *std-filters
+#          - build-debian-arm64-12-bookworm:
+#              <<: *std-filters
+#          - build-debian-armhf-12-bookworm:
+#              <<: *std-filters
+#          - build-debian-armhf-11-bullseye:
+#              <<: *std-filters
+#          - build-debian-arm64-11-bullseye:
+#              <<: *std-filters
+#          - build-debian-x86_64-11-bullseye:
+#             <<: *std-filters
+## KEEP needed for Jammy with wx32
+#          - build-ubuntu-x86_64-2204-jammy:
+#              <<: *std-filters
 ## -------------------------------------------
 ## OpenCPN 5.6.2 Plugins  Frozen - 28/05/2023
 ## ------------------------------------------
 ## Circleci will not build for macos 11 so removed - 18/10/2023
-          - build-msvc-2022:
-              <<: *std-filters
+#          - build-msvc-2022:
+#              <<: *std-filters
 
 orbs:
     cloudsmith: cloudsmith/cloudsmith@1.0.5
@@ -192,6 +201,24 @@ jobs:
               sh -c "otool -L build/*.dylib"
         - run: >
               sh -c "cat build/*.xml"
+        # Build an OpenCPN-importable tarball and publish it as a CircleCI
+        # artifact for local testing (deploy/Cloudsmith is off for now). The
+        # CPack TGZ has no metadata.xml, so OpenCPN's "Import plugin" rejects it
+        # with "Error extracting metadata from tarball". The build emits the
+        # metadata as a sibling *.xml; inject it at the payload root (next to
+        # OpenCPN.app) and repack.
+        - run:
+            name: Build importable plugin tarball
+            command: |
+              chmod a+x ci/make-importable-tarball.sh
+              bash ci/make-importable-tarball.sh build
+              mkdir -p /tmp/wf-artifacts
+              cp build/*.tar.gz build/*.xml /tmp/wf-artifacts/ 2>/dev/null || true
+              find build/_import -name '*.dylib' -exec cp {} /tmp/wf-artifacts/ \; 2>/dev/null || true
+              ls -la /tmp/wf-artifacts
+        - store_artifacts:
+            path: /tmp/wf-artifacts
+            destination: plugin
         - deploy-code:
             deploy_use_orb: false
             install_python: false
@@ -210,6 +237,23 @@ jobs:
             privileged: False
             shell: cmd.exe
             command: ci\circleci-build-msvc.bat
+            # win_deps.bat (choco install cmake + fetch wx) routinely runs >10m
+            # with no console output; the default 10m no-output timeout kills it.
+            no_output_timeout: 30m
+        # Publish an OpenCPN-importable tarball for local testing. Runs under the
+        # job's bash.exe (git-bash: tar/sed/head available); a relative artifacts
+        # dir avoids Windows /tmp path issues.
+        - run:
+            name: Build importable plugin tarball
+            command: |
+              ls -la build/ || true
+              bash ci/make-importable-tarball.sh build
+              mkdir -p wf-artifacts
+              cp build/*.tar.gz build/*.xml wf-artifacts/ 2>/dev/null || true
+              ls -la wf-artifacts
+        - store_artifacts:
+            path: wf-artifacts
+            destination: plugin
         - deploy-code:
             deploy_use_orb: false
     build-flatpak-aarch64-2208:
@@ -389,6 +433,22 @@ jobs:
         - run:
             command: ci/circleci-build-ubuntu-docker.sh
             no_output_timeout: 30m
+        # Publish an OpenCPN-importable tarball for local testing (the docker
+        # build leaves the CPack tarball + metadata in build/ on the host).
+        - run:
+            name: Build importable plugin tarball
+            command: |
+              echo "=== build/ contents ==="
+              ls -la build/ 2>/dev/null || echo "(no build/ directory)"
+              echo "=== any packages produced ==="
+              find . -name '*.tar.gz' -o -name '*.deb' 2>/dev/null | grep -v -- '-import' | head
+              bash ci/make-importable-tarball.sh build
+              mkdir -p /tmp/wf-artifacts
+              cp build/*.tar.gz build/*.xml /tmp/wf-artifacts/ 2>/dev/null || true
+              ls -la /tmp/wf-artifacts
+        - store_artifacts:
+            path: /tmp/wf-artifacts
+            destination: plugin
         - deploy-code
     build-debian-armhf-11-bullseye:
         machine:

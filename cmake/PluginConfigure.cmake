@@ -57,12 +57,20 @@ else ()
       OUTPUT_VARIABLE GIT_STATUS
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    string(FIND ${GIT_STATUS} "..." START_TRACKED)
+    # Parse only the first line ("## <local>...<remote>/<branch>"). When the
+    # working tree is dirty (normal mid-development) `git status -b` appends
+    # "M file" lines; feeding the whole multi-line value unquoted into string()
+    # splits it into too many arguments and errors. Quote everything too.
+    string(REGEX REPLACE "\n.*$" "" GIT_BRANCH_LINE "${GIT_STATUS}")
+    string(FIND "${GIT_BRANCH_LINE}" "..." START_TRACKED)
     if (NOT START_TRACKED EQUAL -1)
-      string(FIND ${GIT_STATUS} "/" END_TRACKED)
+      # Remote name is between "..." and the first "/" AFTER it. Slice the tail
+      # past "..." so a slash in the local branch name (e.g. feat/x) isn't
+      # matched first (that produced a negative length and crashed string()).
       math(EXPR START_TRACKED "${START_TRACKED}+3")
-      math(EXPR END_TRACKED "${END_TRACKED}-${START_TRACKED}")
-      string(SUBSTRING ${GIT_STATUS} ${START_TRACKED} ${END_TRACKED}
+      string(SUBSTRING "${GIT_BRANCH_LINE}" ${START_TRACKED} -1 GIT_TRACKED_TAIL)
+      string(FIND "${GIT_TRACKED_TAIL}" "/" END_TRACKED)
+      string(SUBSTRING "${GIT_TRACKED_TAIL}" 0 ${END_TRACKED}
                        GIT_REPOSITORY_REMOTE
       )
       message(STATUS "${CMLOC}GIT_REPOSITORY_REMOTE: ${GIT_REPOSITORY_REMOTE}")

@@ -1,310 +1,124 @@
 /******************************************************************************
- * $Id: weatherfiles_pi.h,v 1.0 2015/01/28 01:54:37 jongough Exp $
+ * WeatherFiles OpenCPN plugin.
  *
- * Project:  OpenCPN
- * Purpose:  OpenCPN General Drawing Plugin
- * Author:   Jon Gough
+ * Originally seeded from the OpenCPN plugin template (jongough/testplugin_pi);
+ * the Object-Draw demo, control dialog, JSON messaging and related cruft have
+ * been removed. What remains is the WeatherFiles client: a toolbar button that
+ * opens the model browser, and a preferences dialog for the API token.
  *
- ***************************************************************************
- *   Copyright (C) 2010 by David S. Register   *
- *   $EMAIL$   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,  USA.             *
- ***************************************************************************
- */
+ * GPL-3.0 (see LICENSE).
+ ******************************************************************************/
 #ifndef _WEATHERFILESPI_H_
 #define _WEATHERFILESPI_H_
-
-#ifdef __WXMSW__
-#ifdef _DEBUG
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-#include <sstream>
-#include <cstdint>
-#  define DEBUGSL(x) do { \
-std::ostringstream oss; \
-oss << x; \
-time_t now = time(0); \
-tm* localtm = localtime(&now); \
-char *stime = asctime(localtm); \
-stime[strlen(stime) - 1 ] = 0; \
-std::string s1(oss.str()); \
-std::string s = stime; \
-s += " :: "; \
-s += s1; \
-s += "\n"; \
-std::wstring stemp = std::wstring(s.begin(), s.end()); \
-LPCWSTR sw = stemp.c_str(); \
-OutputDebugString(sw); } while (0)
-
-#  define DEBUGST(x) do { \
-std::string s(""); \
-std::ostringstream oss; \
-oss << x; \
-time_t now = time(0); \
-tm* localtm = localtime(&now); \
-char *stime = asctime(localtm); \
-stime[strlen(stime) - 1 ] = 0; \
-do { \
-std::string s1(oss.str()); \
-s += stime; \
-s += " :: "; \
-s += s1; } while (0);
-
-#  define DEBUGCONT(x) do { \
-std::ostringstream oss; \
-oss << x; \
-std::string s1(oss.str()); \
-s += s1 ; } while (0);
-
-#  define DEBUGEND(x) do { \
-std::string s1(""); \
-std::ostringstream oss; \
-oss << x; \
-s1 = oss.str(); \
-s += s1; } while (0); \
-s += "\n" ; \
-std::wstring stemp = std::wstring(s.begin(), s.end()); \
-LPCWSTR sw = stemp.c_str(); \
-OutputDebugString(sw); } while (0)
-#else
-#  define DEBUGSL(x) do {} while (0)
-#  define DEBUGST(x) do {} while (0)
-#  define DEBUGCONT(x) do {} while (0)
-#  define DEBUGEND(x) do {} while (0)
-#endif
-#else
-#ifdef DEBUG_BUILD
-#  define DEBUGSL(x) do { \
-time_t now = time(0); \
-tm* localtm = localtime(&now); \
-char *stime = asctime(localtm); \
-stime[strlen(stime) - 1 ] = 0; \
-std::cout << stime << " :: "; \
-std::cout << x << std::endl ;} while (0)
-
-#  define DEBUGST(x) do { \
-time_t now = time(0); \
-tm* localtm = localtime(&now); \
-char *stime = asctime(localtm); \
-stime[strlen(stime) - 1 ] = 0; \
-std::cout << stime << " :: " ; \
-std::cout << x; } while (0)
-
-#  define DEBUGCONT(x) do { \
-std::cout << x ; } while (0)
-
-#  define DEBUGEND(x) do { \
-std::cout << x  << std::endl ; } while (0)
-#else
-#  define DEBUGSL(x) do {} while (0)
-#  define DEBUGST(x) do {} while (0)
-#  define DEBUGCONT(x) do {} while (0)
-#  define DEBUGEND(x) do {} while (0)
-#endif
-#endif
-
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
-
-#ifdef __OCPN__ANDROID__
-#include "qopengl.h"                  // this gives us the qt runtime gles2.h
-#endif
 
 #include "wxWTranslateCatalog.h"
 
 #include <cstdint>
-#include <stdint.h>
 #include "ocpn_plugin.h"
 
 #include <wx/string.h>
-#include <wx/settings.h>
-#include <wx/statline.h>
-#include <wx/image.h>
-#include <wx/icon.h>
-#include <wx/dialog.h>
-#include <wx/splitter.h>
 #include <wx/fileconf.h>
-#include <wx/dynarray.h>
+#include <wx/gdicmn.h>   // wxPoint
 
-#include "ODAPI.h"
+#include <functional>
+
 #include "globals.h"
+#include "wf_api.h"      // WfModel, WfBBox
 
-//----------------------------------------------------------------------------------------------------------
+class tpicons;
+class WfMultiSliceDialog;
+
+//----------------------------------------------------------------------------
 //    The PlugIn Class Definition
-//----------------------------------------------------------------------------------------------------------
-
-//#define PI 3.14159265
-
+//----------------------------------------------------------------------------
 class weatherfiles_pi : public opencpn_plugin_118
 {
 public:
-
     weatherfiles_pi(void *ppimgr);
     ~weatherfiles_pi();
 
-    wxWindow            *m_parent_window;
-    wxFileConfig        *m_pTPConfig;
-    wxTimer             *m_timer;
-
-
-    //    The required PlugIn Methods
+    //    Required PlugIn methods
     int Init(void);
     bool DeInit(void);
 
+    int GetAPIVersionMajor();
+    int GetAPIVersionMinor();
     int GetPlugInVersionMajor();
     int GetPlugInVersionMinor();
     int GetPlugInVersionPatch();
     int GetPlugInVersionPost();
 
-    int GetAPIVersionMajor();
-    int GetAPIVersionMinor();
     wxBitmap *GetPlugInBitmap();
     wxString GetCommonName();
     wxString GetShortDescription();
     wxString GetLongDescription();
-//    void SetColorScheme(PI_ColorScheme cs);
-    void GetOriginalColors();
-    void SetOriginalColors();
 
-    //    The required override PlugIn Methods
-    //     bool RenderOverlay(wxMemoryDC *pmdc, PlugIn_ViewPort *vp);
-    //      void SetCursorLatLon(double lat, double lon);
-
-
-    int GetToolbarToolCount(void);
-    void ShowPreferencesDialog( wxWindow* parent );
+    //    Toolbar + preferences
+    int  GetToolbarToolCount(void);
     void OnToolbarToolCallback(int id);
-    void OnToolbarToolDownCallback(int id);
-    void OnToolbarToolUpCallback(int id);
-    void SetPluginMessage(wxString &message_id, wxString &message_body);
+    void ShowPreferencesDialog(wxWindow* parent);
 
-    void loadLayouts(wxWindow * parent);
-//    void startLogbook();
-    void shutdown(bool menu);
-    void LateInit(void);
-    bool KeyboardEventHook( wxKeyEvent &event );
-    bool MouseEventHook( wxMouseEvent &event );
-    void SetCursorLatLon(double lat, double lon);
+    // Track the current chart view so the download dialog can default its area
+    // to what the user is looking at. RenderOverlay is called every redraw with
+    // the current viewport (needs WANTS_OVERLAY_CALLBACK|WANTS_ONPAINT_VIEWPORT);
+    // SetCurrentViewPort is a secondary hook. Falls back to the model domain if
+    // neither fires.
+    // API 1.18 calls the MultiCanvas overlay variants (the legacy
+    // RenderOverlay/RenderGLOverlay are NOT called for 1.18 plugins). We use
+    // them to capture the current viewport and draw the area-pick rectangle.
+    bool RenderOverlayMultiCanvas(wxDC& dc, PlugIn_ViewPort* vp, int canvas_ix,
+                                  int priority);
+    bool RenderGLOverlayMultiCanvas(wxGLContext* pcontext, PlugIn_ViewPort* vp,
+                                    int canvas_ix, int priority);
+    void SetCurrentViewPort(PlugIn_ViewPort& vp);
+    bool MouseEventHook(wxMouseEvent& event);
 
-    // OD Methods
-    void ProcessTimerEvent(wxTimerEvent& ev);
-    void PopupMenuHandler(wxCommandEvent& ev);
+    // Enter "pick area on chart" mode for `model`: the next left-drag on the
+    // chart draws a box; on release the download dialog opens pre-filled with
+    // it. Called by the model browser, which closes itself first so the chart
+    // is interactive.
+    void StartAreaPick(const WfModel& model);
 
-    void SetToolbarTool( void );
-    void ToggleToolbarIcon( void);
+    // Generic on-chart area pick: rubber-band a box and invoke `cb` with it on
+    // release. The multi-slice dialog uses this to refill its bbox without
+    // closing. `cb` is invoked on the GUI thread.
+    void StartAreaPickMulti(std::function<void(const WfBBox&)> cb);
 
-    void    GetODAPI( void );
+    // Called by WfMultiSliceDialog in its destructor so the plugin can clear
+    // its held pointer.
+    void ClearMultiDialog(WfMultiSliceDialog* dlg);
 
-    void FindClosestBoundaryLineCrossing(FindClosestBoundaryLineCrossing_t *pFCPIAB);
-    bool CreateBoundaryPoint(CreateBoundaryPoint_t *pCBP);
-    bool CreateBoundary(CreateBoundary_t *pCB);
-    bool CreateTextPoint(CreateTextPoint_t *pCTP);
-    bool DeleteBoundaryPoint(DeleteBoundaryPoint_t *pDBP);
-    bool DeleteBoundary(DeleteBoundary_t *pDB);
-    bool DeleteTextPoint(DeleteTextPoint_t *pDTP);
-    void AddPointIcon(AddPointIcon_t *API);
-    void DeletePointIcon(DeletePointIcon_t *p_DPI);
-    bool ImportJSONFile(void);
-    void UpdateCloseAfterSave(bool bCloseAfterSave);
-    void UpdateAppendToFile(bool bAppendToFile);
-    void GetGUIDList(GUIDList_t *pGL);
+    // The currently-open multi-slice dialog or null. Pick callbacks query
+    // this rather than capturing the dialog directly, so a dialog destroyed
+    // between mouse-release and CallAfter dispatch is a safe no-op.
+    WfMultiSliceDialog* MultiDialog() const { return m_multi_dialog; }
 
-    wxGLContext     *m_pcontext;
-    wxMemoryDC      *pmdc;
-//    wxGLCanvas      *m_glcc;
-
-    int         nBlinkerTick;
-
-    void    appendOSDirSlash(wxString* pString);
-
-    tpicons *m_ptpicons;
-    tpControlDialogImpl    *m_tpControlDialogImpl;
-
-    bool    eventsEnabled;
-    bool    m_bReadyForRequests;
-    bool    m_bDoneODAPIVersionCall;
-    int     m_iCallerId;
-    bool    m_btpDialog;
-    int     m_weatherfiles_button_id;
-    int     m_iODVersionMajor;
-    int     m_iODVersionMinor;
-    int     m_iODVersionPatch;
-    int     m_iODAPIVersionMajor;
-    int     m_iODAPIVersionMinor;
-    bool    m_bOD_FindPointInAnyBoundary;
-    bool    m_bODFindClosestBoundaryLineCrossing;
-    bool    m_bODFindFirstBoundaryLineCrossing;
-    bool    m_bODCreateBoundary;
-    bool    m_bODCreateBoundaryPoint;
-    bool    m_bODCreateTextPoint;
-    bool    m_bODDeleteBoundary;
-    bool    m_bODDeleteBoundaryPoint;
-    bool    m_bODDeleteTextPoint;
-    bool    m_bODAddPointIcon;
-    bool    m_bODDeletePointIcon;
-    bool    m_bODFindAllPathsGUIDS;
-    bool    m_bODFindAllPointsGUIDS;
-    wxFileName  m_fnInputJSON;
-    wxFileName  m_fnOutputJSON;
-    bool    m_bSaveIncommingJSONMessages;
-    bool    m_bRecreateConfig;
-    bool    m_bCloseSaveFileAfterEachWrite;
-    bool    m_bAppendToSaveFile;
-
+    // WeatherFiles API personal access token. Public so the dialogs can read it
+    // (set via ShowPreferencesDialog, persisted in the OpenCPN config).
+    wxString m_token;
 
 private:
-    void    OnTimer(wxTimerEvent& ev);
+    void SaveConfig();
+    void LoadConfig();
 
-    void    SaveConfig( void );
-    void    LoadConfig();
+    wxWindow     *m_parent_window;
+    wxFileConfig *m_pTPConfig;
+    tpicons      *m_ptpicons;
+    int           m_weatherfiles_button_id;       // area-first multi-slice
+    PlugIn_ViewPort m_last_vp;   // most recent chart view (bValid until set)
 
-    void    MenuPrepend( wxMenu *menu, int id, wxString label);
-    void    MenuAppend( wxMenu *menu, int id, wxString label);
-    void    FindSelectedObject( void );
+    // On-chart area-pick state.
+    bool     m_picking = false;   // in pick mode (armed by Start*Pick)
+    bool     m_dragging = false;  // a left-drag is in progress
+    wxPoint  m_pick_start;        // drag anchor (canvas pixels)
+    wxPoint  m_pick_cur;          // current drag point (canvas pixels)
+    // What to do with the box on release. Set by StartAreaPick (single-model
+    // download dialog) or StartAreaPickMulti (callback into the multi-slice
+    // dialog). Cleared after firing.
+    std::function<void(const WfBBox&)> m_pick_cb;
 
-    PlugIn_ViewPort m_VP;
-
-    int     m_show_id;
-    int     m_hide_id;
-    bool    show;
-    int     m_config_button_id;
-
-    double  m_cursor_lat;
-    double  m_cursor_lon;
-    double  m_click_lat;
-    double  m_click_lon;
-
-    OD_FindPointInAnyBoundary           m_pOD_FindPointInAnyBoundary;
-    OD_FindClosestBoundaryLineCrossing  m_pODFindClosestBoundaryLineCrossing;
-    OD_FindFirstBoundaryLineCrossing    m_pODFindFirstBoundaryLineCrossing;
-    OD_CreateBoundary                   m_pODCreateBoundary;
-    OD_CreateBoundaryPoint              m_pODCreateBoundaryPoint;
-    OD_CreateTextPoint                  m_pODCreateTextPoint;
-    OD_DeleteBoundaryPoint              m_pODDeleteBoundaryPoint;
-    OD_DeleteBoundary                   m_pODDeleteBoundary;
-    OD_DeleteTextPoint                  m_pODDeleteTextPoint;
-    OD_AddPointIcon                     m_pODAddPointIcon;
-    OD_DeletePointIcon                  m_pODDeletePointIcon;
-    OD_FindAllPathsGUIDS                m_pODFindAllPathsGUIDS;
-    OD_FindAllPointsGUIDS               m_pODFindAllPointsGUIDS;
+    // The modeless multi-slice dialog (null when not open).
+    WfMultiSliceDialog* m_multi_dialog = nullptr;
 };
 
-#endif
-
-
-
+#endif  // _WEATHERFILESPI_H_

@@ -180,18 +180,21 @@ add_definitions(-DUSE_S57)
 
 # ---- Section Below - Add your project SET(SRCS and SET(HDRS  etc..
 
-set(SRCS src/tpControlDialogDef.cpp src/tpControlDialogImpl.cpp src/tpicons.cpp
-         src/tpJSON.cpp src/weatherfiles_pi.cpp src/tpUtils.cpp
+set(SRCS src/tpicons.cpp src/weatherfiles_pi.cpp
+         src/wf_api.cpp src/wf_prefs_dialog.cpp src/wf_models_panel.cpp
+         src/wf_download_dialog.cpp src/wf_download_progress.cpp
+         src/wf_multi_slice_dialog.cpp
 )
 
 set(HDRS
     include/weatherfiles_pi.h
     include/tpicons.h
-    include/tpControlDialogDef.h
-    include/tpControlDialogImpl.h
-    include/tpIconCombo.h
-    include/tpJSON.h
-    include/tpUtils.h
+    include/wf_api.h
+    include/wf_prefs_dialog.h
+    include/wf_models_panel.h
+    include/wf_download_dialog.h
+    include/wf_download_progress.h
+    include/wf_multi_slice_dialog.h
 )
 
 add_definitions(-DPLUGIN_USE_SVG)
@@ -228,6 +231,22 @@ else (OD_JSON_SCHEMA_VALIDATOR)
 endif (OD_JSON_SCHEMA_VALIDATOR)
 
 # ----- If using JSON validation in plugin section above is needed
+
+# ----- HTTP client for the WeatherFiles API. We use each platform's native
+# client: WinHTTP (system) on Windows, libcurl on macOS/Linux. wxWebRequest is
+# avoided (optional wx component, off on Debian's wx3.2) and libcurl dev libs
+# aren't in the Windows build env. opengl32 is needed on Windows for the overlay
+# (macOS/Linux get GL from the framework / mesa via wx).
+if (WIN32)
+  target_link_libraries(${PACKAGE_NAME} winhttp opengl32)
+else (WIN32)
+  find_package(CURL REQUIRED)
+  target_link_libraries(${PACKAGE_NAME} CURL::libcurl)
+endif (WIN32)
+
+# std::thread (download progress dialog) needs pthread on Linux.
+find_package(Threads REQUIRED)
+target_link_libraries(${PACKAGE_NAME} Threads::Threads)
 
 if (QT_ANDROID)
 

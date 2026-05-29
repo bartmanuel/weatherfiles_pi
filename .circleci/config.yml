@@ -38,13 +38,16 @@ workflows:
               <<: *std-filters
           - build-msvc-wx32-2022:
               <<: *std-filters
-          # Phase-2 (2026-05-29): two flatpaks on the current KDE 24.08
-          # runtime. One build per arch covers every Linux distro, which is
-          # the whole point of going to flatpak. 22.08 stays commented out;
-          # add it back if we hit legacy-runtime users.
-          - build-flatpak-aarch64-2408:
+          # Phase-2 (2026-05-29): two flatpaks on freedesktop Sdk 25.08
+          # to match flathub's current org.opencpn.OpenCPN (runtime
+          # org.freedesktop.Platform//25.08). Building against 24.08
+          # produces a tarball that imports as "Incompatible plugin"
+          # because OpenCPN's plugin manager compares target-version
+          # against the host's runtime. One build per arch covers every
+          # Linux distro.
+          - build-flatpak-aarch64-2508:
               <<: *std-filters
-          - build-flatpak-x86-2408:
+          - build-flatpak-x86-2508:
               <<: *std-filters
 ## --- full matrix (restore later) ------------------------------------------
 #          - build-android-arm64:
@@ -308,7 +311,7 @@ jobs:
             command: bash ci/circleci-build-flatpak.sh
             no_output_timeout: 30m
         - deploy-code
-    build-flatpak-aarch64-2408:
+    build-flatpak-aarch64-2508:
         machine:
             image: ubuntu-2404:current
             resource_class: arm.medium
@@ -317,7 +320,7 @@ jobs:
         - BUILD_ARCH: aarch64
         - FLATPAK_BRANCH: stable
         - CLOUDSMITH_PKG_EXT: gz
-        - SDK_VER: 24.08
+        - SDK_VER: 25.08
         - DEPLOY_USE_ORB: true
         steps:
         - checkout
@@ -336,9 +339,9 @@ jobs:
               ls -la build/*.xml || true
         - store_artifacts:
             path: build
-            destination: build-flatpak-aarch64-2408
+            destination: build-flatpak-aarch64-2508
         - deploy-code
-    build-flatpak-x86-2408:
+    build-flatpak-x86-2508:
         machine:
             image: ubuntu-2404:current
         environment:
@@ -346,7 +349,7 @@ jobs:
         - BUILD_ARCH: x86_64
         - FLATPAK_BRANCH: stable
         - CLOUDSMITH_PKG_EXT: gz
-        - SDK_VER: 24.08
+        - SDK_VER: 25.08
         - DEPLOY_USE_ORB: true
         steps:
         - checkout
@@ -365,7 +368,7 @@ jobs:
               ls -la build/*.xml || true
         - store_artifacts:
             path: build
-            destination: build-flatpak-x86-2408
+            destination: build-flatpak-x86-2508
         - deploy-code
     build-debian-arm64-13-trixie:
         machine:

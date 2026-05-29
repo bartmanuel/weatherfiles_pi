@@ -50,8 +50,17 @@ security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
 
 P12=$(mktemp)
-echo "$MACOS_CERT_P12_B64" | base64 -d > "$P12"
+# `echo` adds a trailing newline that some base64 impls treat as bad
+# input. `printf '%s'` doesn't. We also strip any whitespace/CR the env
+# var might have picked up via copy/paste from `pbcopy`.
+printf '%s' "$MACOS_CERT_P12_B64" \
+  | tr -d ' \t\r\n' \
+  | base64 -d > "$P12"
+echo "Decoded p12 size: $(wc -c < "$P12") bytes"
+file "$P12" || true   # should report 'PKCS#12 Certificate Bag' or similar
+# -f pkcs12 makes the format explicit instead of relying on autodetect.
 security import "$P12" -k "$KEYCHAIN" -P "$MACOS_CERT_PASSWORD" \
+  -f pkcs12 \
   -T /usr/bin/codesign
 security set-key-partition-list -S apple-tool:,apple:,codesign: \
   -s -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null

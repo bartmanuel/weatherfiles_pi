@@ -151,6 +151,19 @@ message(STATUS "${CMLOC}Build type: ${CMAKE_BUILD_TYPE}")
 
 project(${PACKAGE})
 
+# gcc 14 (shipped in flatpak SDK 25.08) no longer transitively pulls
+# <cstdint>, so headers in opencpn-libs/api-18/ that use uint64_t/uint8_t
+# without an explicit include fail to compile. Force-include cstdint
+# globally as a workaround until opencpn-libs fixes the upstream header.
+# Must come AFTER project() so CMAKE_CXX_COMPILER_ID is populated.
+# Plain string-append into CMAKE_CXX_FLAGS rather than
+# add_compile_options(...) — the latter mangled "-include cstdint" into
+# the literal tokens "$<1:-include" and "cstdint>" via generator-expr
+# escaping on flatpak SDK 25.08's cmake.
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include cstdint")
+endif ()
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # ========================================================

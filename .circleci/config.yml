@@ -38,6 +38,17 @@ workflows:
               <<: *std-filters
           - build-msvc-wx32-2022:
               <<: *std-filters
+          # Phase-2 (2026-05-29): two flatpaks on freedesktop Sdk 25.08
+          # to match flathub's current org.opencpn.OpenCPN (runtime
+          # org.freedesktop.Platform//25.08). Building against 24.08
+          # produces a tarball that imports as "Incompatible plugin"
+          # because OpenCPN's plugin manager compares target-version
+          # against the host's runtime. One build per arch covers every
+          # Linux distro.
+          - build-flatpak-aarch64-2508:
+              <<: *std-filters
+          - build-flatpak-x86-2508:
+              <<: *std-filters
 ## --- full matrix (restore later) ------------------------------------------
 #          - build-android-arm64:
 #              <<: *std-filters
@@ -46,10 +57,6 @@ workflows:
 #          - build-flatpak-aarch64-2208:
 #              <<: *std-filters
 #          - build-flatpak-x86-2208:
-#              <<: *std-filters
-#          - build-flatpak-aarch64-2408:
-#              <<: *std-filters
-#          - build-flatpak-x86-2408:
 #              <<: *std-filters
 #          - build-debian-armhf-13-trixie:
 #              <<: *std-filters
@@ -304,7 +311,7 @@ jobs:
             command: bash ci/circleci-build-flatpak.sh
             no_output_timeout: 30m
         - deploy-code
-    build-flatpak-aarch64-2408:
+    build-flatpak-aarch64-2508:
         machine:
             image: ubuntu-2404:current
             resource_class: arm.medium
@@ -313,23 +320,7 @@ jobs:
         - BUILD_ARCH: aarch64
         - FLATPAK_BRANCH: stable
         - CLOUDSMITH_PKG_EXT: gz
-        - SDK_VER: 24.08
-        - DEPLOY_USE_ORB: true
-        steps:
-        - checkout
-        - run: chmod a+x ci/*.sh
-        - run:
-            command: bash ci/circleci-build-flatpak.sh
-        - deploy-code
-    build-flatpak-x86-2408:
-        machine:
-            image: ubuntu-2404:current
-        environment:
-        - OCPN_TARGET:  flatpak
-        - BUILD_ARCH: x86_64
-        - FLATPAK_BRANCH: stable
-        - CLOUDSMITH_PKG_EXT: gz
-        - SDK_VER: 24.08
+        - SDK_VER: 25.08
         - DEPLOY_USE_ORB: true
         steps:
         - checkout
@@ -337,6 +328,47 @@ jobs:
         - run:
             command: bash ci/circleci-build-flatpak.sh
             no_output_timeout: 30m
+        - run:
+            name: "Diag: list build/ before deploy"
+            command: |
+              echo "=== ls -la build/ ==="
+              ls -la build/ || true
+              echo "=== build/*.tar.gz ==="
+              ls -la build/*.tar.gz || true
+              echo "=== build/*.xml ==="
+              ls -la build/*.xml || true
+        - store_artifacts:
+            path: build
+            destination: build-flatpak-aarch64-2508
+        - deploy-code
+    build-flatpak-x86-2508:
+        machine:
+            image: ubuntu-2404:current
+        environment:
+        - OCPN_TARGET:  flatpak
+        - BUILD_ARCH: x86_64
+        - FLATPAK_BRANCH: stable
+        - CLOUDSMITH_PKG_EXT: gz
+        - SDK_VER: 25.08
+        - DEPLOY_USE_ORB: true
+        steps:
+        - checkout
+        - run: chmod a+x ci/*.sh
+        - run:
+            command: bash ci/circleci-build-flatpak.sh
+            no_output_timeout: 30m
+        - run:
+            name: "Diag: list build/ before deploy"
+            command: |
+              echo "=== ls -la build/ ==="
+              ls -la build/ || true
+              echo "=== build/*.tar.gz ==="
+              ls -la build/*.tar.gz || true
+              echo "=== build/*.xml ==="
+              ls -la build/*.xml || true
+        - store_artifacts:
+            path: build
+            destination: build-flatpak-x86-2508
         - deploy-code
     build-debian-arm64-13-trixie:
         machine:

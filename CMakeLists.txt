@@ -126,6 +126,16 @@ option(PLUGIN_USE_SVG "Use SVG graphics" ON)
 
 set(CMAKE_CXX_STANDARD 11)
 
+# gcc 14 (shipped in flatpak SDK 25.08) no longer transitively pulls
+# <cstdint>, so headers in opencpn-libs/api-18/ that use uint64_t/uint8_t
+# without an explicit include fail to compile. Force-include cstdint
+# globally as a workaround until opencpn-libs fixes the upstream header.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-include cstdint" _have_force_include_cstdint)
+if (_have_force_include_cstdint)
+  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-include;cstdint>)
+endif ()
+
 # Use local version of GLU library requires libs/glu directory
 set(USE_LOCAL_GLU FALSE)
 # Prefer libGL.so to libOpenGL.so, see CMP0072

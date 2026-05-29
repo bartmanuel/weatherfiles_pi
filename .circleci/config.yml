@@ -106,6 +106,18 @@ commands:
                     - cloudsmith/ensure-api-key
                     - cloudsmith/install-cli
                 - get-users-and-collaborators
+                # The upstream cloudsmith-upload.sh globs build/*.tar.gz and
+                # blows up when it finds two (CPack original + our
+                # ci/make-importable-tarball.sh repack). Stash our import
+                # tarball one level down so the glob misses it; CI artifacts
+                # have already been captured by store_artifacts at this point.
+                - run:
+                    name: Move -import.tar.gz aside (avoid cloudsmith glob)
+                    command: |
+                      if ls build/*-import.tar.gz >/dev/null 2>&1; then
+                        mkdir -p build/_importable
+                        mv build/*-import.tar.gz build/_importable/
+                      fi
                 - run: bash ci/cloudsmith-upload.sh
     get-collaborators:
       steps:

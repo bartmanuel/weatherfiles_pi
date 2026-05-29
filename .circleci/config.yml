@@ -324,6 +324,19 @@ jobs:
         - run: chmod a+x ci/*.sh
         - run:
             command: bash ci/circleci-build-flatpak.sh
+            no_output_timeout: 30m
+        - run:
+            name: "Diag: list build/ before deploy"
+            command: |
+              echo "=== ls -la build/ ==="
+              ls -la build/ || true
+              echo "=== build/*.tar.gz ==="
+              ls -la build/*.tar.gz || true
+              echo "=== build/*.xml ==="
+              ls -la build/*.xml || true
+        - store_artifacts:
+            path: build
+            destination: build-flatpak-aarch64-2408
         - deploy-code
     build-flatpak-x86-2408:
         machine:
@@ -341,6 +354,18 @@ jobs:
         - run:
             command: bash ci/circleci-build-flatpak.sh
             no_output_timeout: 30m
+        - run:
+            name: "Diag: list build/ before deploy"
+            command: |
+              echo "=== ls -la build/ ==="
+              ls -la build/ || true
+              echo "=== build/*.tar.gz ==="
+              ls -la build/*.tar.gz || true
+              echo "=== build/*.xml ==="
+              ls -la build/*.xml || true
+        - store_artifacts:
+            path: build
+            destination: build-flatpak-x86-2408
         - deploy-code
     build-debian-arm64-13-trixie:
         machine:

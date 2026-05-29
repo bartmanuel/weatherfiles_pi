@@ -91,5 +91,34 @@ else
     cmake -DOCPN_TARGET=$OCPN_TARGET -DBUILD_ARCH=$BUILD_ARCH -DOCPN_FLATPAK_CONFIG=ON -DSDK_VER=$SDK_VER -DFLATPAK_BRANCH=$FLATPAK_BRANCH $SET_WX_VER ..
 fi
 
+echo "=== FLATPAK: make flatpak-build starting ($(date)) ==="
 make flatpak-build
+echo "=== FLATPAK: make flatpak-build done ($(date)) ==="
+ls -la
+echo "=== FLATPAK: make flatpak-pkg starting ($(date)) ==="
 make flatpak-pkg
+echo "=== FLATPAK: make flatpak-pkg done ($(date)) ==="
+
+# Diagnostics so we can tell from the CI log whether the tarball ended up
+# where cloudsmith-upload.sh.in expects it (`$BUILD_DIR/*.tar.gz`,
+# `$BUILD_DIR/*.xml`, `$BUILD_DIR/pkg_version.sh`). Job 116 and 119 from
+# PR #3 reported SUCCESS in 2:30 but landed nothing in Cloudsmith, so this
+# block exists to prove what build/ actually contains.
+echo "=== FLATPAK: final build/ contents ==="
+ls -la
+echo "=== FLATPAK: *.tar.gz ==="
+ls -la ./*.tar.gz 2>&1 || true
+echo "=== FLATPAK: *.xml ==="
+ls -la ./*.xml 2>&1 || true
+echo "=== FLATPAK: pkg_version.sh ==="
+ls -la ./pkg_version.sh 2>&1 || true
+echo "=== FLATPAK: cloudsmith-upload.sh first lines ==="
+head -20 ./cloudsmith-upload.sh 2>&1 || true
+
+# Hard-fail if the tarball is missing — the upstream upload script would
+# otherwise pick up an empty `tarball=` and either hang on `gunzip` or
+# noop the cloudsmith push without surfacing the cause.
+if ! ls ./*.tar.gz >/dev/null 2>&1; then
+    echo "ERROR: flatpak-pkg produced no .tar.gz in $(pwd)" >&2
+    exit 1
+fi

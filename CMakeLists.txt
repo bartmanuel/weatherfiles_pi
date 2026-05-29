@@ -106,8 +106,10 @@ set(CLOUDSMITH_BASE_REPOSITORY "weatherfiles") # without the pi
 
 # Set the following to use OpenCPN cloudsmith repositories instead of own
 # repositories
-set(CLOUDSMITH_USER "opencpn")
-# set(CLOUDSMITH_USER "jon-gough")
+# Personal Cloudsmith user for the Alpha phase. Will move to 'opencpn'
+# (catalog-hosted) once the plugin lands on the official OpenCPN catalog.
+set(CLOUDSMITH_USER "bartmanuel-fgsm")
+# set(CLOUDSMITH_USER "opencpn")
 
 set(XML_INFO_URL
     "https://opencpn.org/wiki/dokuwiki/doku.php?id=opencpn:opencpn_user_manual:plugins:safety:odraw1.6_pi"

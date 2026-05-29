@@ -4,11 +4,13 @@ version: 2.1
 parameters:
     run_workflow_deploy:
         type: boolean
-        # Build-only until Cloudsmith publishing is set up (deferred operator
-        # task: CLOUDSMITH_API_KEY + Apple signing). Every `deploy-code` step is
-        # gated on this, so `false` skips all upload steps and CI just compiles.
-        # Flip back to `true` once the package repo + signing creds exist.
-        default: false
+        # Cloudsmith publishing is wired (2026-05-29) to bartmanuel-fgsm/weatherfiles-alpha.
+        # Requires CLOUDSMITH_API_KEY in the CircleCI project env vars; the
+        # orb's `ensure-api-key` step fails the job if it's unset. Override
+        # the destination repo per-channel via CLOUDSMITH_ALPHA_REPO /
+        # CLOUDSMITH_BETA_REPO / CLOUDSMITH_PROD_REPO env vars (we currently
+        # redirect BETA + PROD to the alpha repo since only that one exists).
+        default: true
 
 std-filters: &std-filters
     filters:
@@ -104,6 +106,18 @@ commands:
                     - cloudsmith/ensure-api-key
                     - cloudsmith/install-cli
                 - get-users-and-collaborators
+                # The upstream cloudsmith-upload.sh globs build/*.tar.gz and
+                # blows up when it finds two (CPack original + our
+                # ci/make-importable-tarball.sh repack). Stash our import
+                # tarball one level down so the glob misses it; CI artifacts
+                # have already been captured by store_artifacts at this point.
+                - run:
+                    name: Move -import.tar.gz aside (avoid cloudsmith glob)
+                    command: |
+                      if ls build/*-import.tar.gz >/dev/null 2>&1; then
+                        mkdir -p build/_importable
+                        mv build/*-import.tar.gz build/_importable/
+                      fi
                 - run: bash ci/cloudsmith-upload.sh
     get-collaborators:
       steps:

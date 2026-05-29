@@ -111,9 +111,7 @@ set(CLOUDSMITH_BASE_REPOSITORY "weatherfiles") # without the pi
 set(CLOUDSMITH_USER "bartmanuel-fgsm")
 # set(CLOUDSMITH_USER "opencpn")
 
-set(XML_INFO_URL
-    "https://opencpn.org/wiki/dokuwiki/doku.php?id=opencpn:opencpn_user_manual:plugins:safety:odraw1.6_pi"
-)
+set(XML_INFO_URL "https://developers.weatherfiles.com")
 set(XML_SUMMARY ${SHORT_DESCRIPTION})
 set(XML_DESCRIPTION ${LONG_DESCRIPTION})
 

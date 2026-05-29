@@ -76,12 +76,34 @@ rm -f "$P12"
 
 trap 'security delete-keychain "$KEYCHAIN" 2>/dev/null || true' EXIT
 
+# Install Apple's Developer ID intermediate certs into the temp keychain.
+# Without them, the leaf cert's chain doesn't validate and
+# `security find-identity -v` reports 0 valid identities even though the
+# cert + private key are present. CircleCI's macOS image doesn't have
+# these in any user-readable keychain by default.
+echo "=== Installing Apple Developer ID intermediates ==="
+for url in \
+    https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer \
+    https://www.apple.com/certificateauthority/DeveloperIDCA.cer \
+    https://www.apple.com/appleca/AppleIncRootCertificate.cer ; do
+  cer=$(mktemp).cer
+  if curl -sSL -o "$cer" "$url"; then
+    security import "$cer" -k "$KEYCHAIN" -T /usr/bin/codesign 2>&1 \
+      | sed 's/^/  /' || true
+  else
+    echo "  (skipped, fetch failed: $url)"
+  fi
+  rm -f "$cer"
+done
+
 echo "=== All certs in the temp keychain ==="
 security find-certificate -a -p "$KEYCHAIN" \
   | openssl x509 -noout -subject 2>/dev/null || true
-echo "=== All identities (any policy) ==="
+echo "=== All identities (no -v, no policy) ==="
+security find-identity "$KEYCHAIN" || true
+echo "=== Valid identities (any policy) ==="
 security find-identity -v "$KEYCHAIN" || true
-echo "=== Code-signing identities ==="
+echo "=== Valid code-signing identities ==="
 security find-identity -v -p codesigning "$KEYCHAIN" || true
 
 # Match the Developer ID Application cert. Tries the specific name first,

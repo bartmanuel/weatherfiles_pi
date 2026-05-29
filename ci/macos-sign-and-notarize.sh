@@ -24,6 +24,18 @@ if [[ -z "${MACOS_CERT_P12_B64:-}" ]]; then
   exit 0
 fi
 
+# Trace every command for the first run so we can see exactly which line
+# fails in the CircleCI log. Secrets are still masked by CircleCI's UI.
+set -x
+
+# Sanity-print env var fingerprints (length only, never the values) so we
+# can tell that all five made it through.
+echo "Cert b64 length: ${#MACOS_CERT_P12_B64}"
+echo "Cert pwd  length: ${#MACOS_CERT_PASSWORD:-0}"
+echo "Apple ID  length: ${#APPLE_ID:-0}"
+echo "Team ID   length: ${#APPLE_TEAM_ID:-0}"
+echo "App pwd   length: ${#APPLE_APP_PASSWORD:-0}"
+
 : "${MACOS_CERT_PASSWORD:?need MACOS_CERT_PASSWORD}"
 : "${APPLE_ID:?need APPLE_ID}"
 : "${APPLE_TEAM_ID:?need APPLE_TEAM_ID}"

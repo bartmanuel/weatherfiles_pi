@@ -155,10 +155,13 @@ project(${PACKAGE})
 # <cstdint>, so headers in opencpn-libs/api-18/ that use uint64_t/uint8_t
 # without an explicit include fail to compile. Force-include cstdint
 # globally as a workaround until opencpn-libs fixes the upstream header.
-# Must come AFTER project() — `add_compile_options` and the CXX language
-# need an enabled language to operate on.
+# Must come AFTER project() so CMAKE_CXX_COMPILER_ID is populated.
+# Plain string-append into CMAKE_CXX_FLAGS rather than
+# add_compile_options(...) — the latter mangled "-include cstdint" into
+# the literal tokens "$<1:-include" and "cstdint>" via generator-expr
+# escaping on flatpak SDK 25.08's cmake.
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-include;cstdint>)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include cstdint")
 endif ()
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

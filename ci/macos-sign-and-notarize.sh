@@ -184,10 +184,26 @@ DYLIB_PATH=$(find "$WORK2" -name '*.dylib' | head -1)
 ditto -c -k --keepParent "$DYLIB_PATH" "$ZIP"
 
 echo "Submitting notarization (max wait 30m)..."
+# Strip whitespace from credentials in case the env var carries trailing
+# spaces / a CR from copy-paste. Has bitten us once already on
+# MACOS_CERT_P12_B64.
+APPLE_ID_TRIM=$(printf '%s' "$APPLE_ID" | tr -d ' \t\r\n')
+APPLE_TEAM_ID_TRIM=$(printf '%s' "$APPLE_TEAM_ID" | tr -d ' \t\r\n')
+APPLE_APP_PASSWORD_TRIM=$(printf '%s' "$APPLE_APP_PASSWORD" | tr -d ' \t\r\n')
+
+# Quick credential check before the actual submit. notarytool history is a
+# read-only call against the same auth path, so if this returns 401 we know
+# it's the credentials, not the zip we built.
+echo "Pre-flighting credentials via 'notarytool history'..."
+xcrun notarytool history \
+  --apple-id "$APPLE_ID_TRIM" \
+  --team-id "$APPLE_TEAM_ID_TRIM" \
+  --password "$APPLE_APP_PASSWORD_TRIM" 2>&1 | head -10 || true
+
 xcrun notarytool submit "$ZIP" \
-  --apple-id "$APPLE_ID" \
-  --team-id "$APPLE_TEAM_ID" \
-  --password "$APPLE_APP_PASSWORD" \
+  --apple-id "$APPLE_ID_TRIM" \
+  --team-id "$APPLE_TEAM_ID_TRIM" \
+  --password "$APPLE_APP_PASSWORD_TRIM" \
   --wait \
   --timeout 30m
 

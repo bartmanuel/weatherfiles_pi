@@ -222,6 +222,18 @@ jobs:
               sh -c "otool -L build/*.dylib"
         - run: >
               sh -c "cat build/*.xml"
+        # Sign every dylib in the CPack tarball with our Developer ID
+        # Application cert, then submit to Apple's notary service. The
+        # script is a no-op when MACOS_CERT_P12_B64 is unset (local /
+        # fork builds without secrets just continue with unsigned bits).
+        # Must run BEFORE make-importable-tarball.sh so the importable
+        # tarball ships the signed dylib.
+        - run:
+            name: macOS code-sign + notarize
+            no_output_timeout: 30m
+            command: |
+              chmod a+x ci/macos-sign-and-notarize.sh
+              bash ci/macos-sign-and-notarize.sh
         # Build an OpenCPN-importable tarball and publish it as a CircleCI
         # artifact for local testing (deploy/Cloudsmith is off for now). The
         # CPack TGZ has no metadata.xml, so OpenCPN's "Import plugin" rejects it

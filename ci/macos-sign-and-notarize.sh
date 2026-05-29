@@ -200,12 +200,29 @@ xcrun notarytool history \
   --team-id "$APPLE_TEAM_ID_TRIM" \
   --password "$APPLE_APP_PASSWORD_TRIM" 2>&1 | head -10 || true
 
+# Soft-fail the notarization step. Signing is what Gatekeeper actually
+# checks; notarization removes the "developer cannot be verified" dialog
+# on first install. If the credentials are bad we still want the rest of
+# the pipeline (importable tarball, Cloudsmith upload) to ship the
+# SIGNED dylib so the macOS Alpha lands alongside the other platforms.
+# Fix the cred and the next push will pick it up.
+set +e
 xcrun notarytool submit "$ZIP" \
   --apple-id "$APPLE_ID_TRIM" \
   --team-id "$APPLE_TEAM_ID_TRIM" \
   --password "$APPLE_APP_PASSWORD_TRIM" \
   --wait \
   --timeout 30m
+NOTARIZE_RC=$?
+set -e
+if [[ "$NOTARIZE_RC" -ne 0 ]]; then
+  echo ""
+  echo "::warning:: Notarization failed (exit $NOTARIZE_RC) but the dylib"
+  echo "::warning:: is signed. Shipping signed-but-not-notarized tarball."
+  echo "::warning:: Users will see a one-time Gatekeeper dialog; right-click"
+  echo "::warning:: -> Open dismisses it permanently. Fix the credentials"
+  echo "::warning:: at https://account.apple.com to flip the notary green."
+fi
 
 rm -rf "$WORK2"
 echo "macOS sign + notarize: done."

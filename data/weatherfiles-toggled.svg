@@ -1,14 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- WeatherFiles mark: white ring + 3x3 grid, transparent background.
-       Ring and squares share one colour; OpenCPN themes the monochrome glyph. -->
-  <circle cx="16" cy="16" r="14" fill="none" stroke="#ffffff" stroke-width="2"/>
-  <rect x="7"  y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="14" y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="21" y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="7"  y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="14" y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="21" y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="7"  y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="14" y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="21" y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <!-- TOGGLED (button checked) state. Brand-blue tile signals "currently
+       engaged" against the muted rest variant; white glyph for contrast. -->
+  <rect x="0" y="0" width="32" height="32" fill="#0054d6"/>
+  <circle cx="16" cy="16" r="11" fill="none" stroke="#ffffff" stroke-width="1.8"/>
+  <g fill="#ffffff">
+    <rect x="9"    y="9"    width="3" height="3" rx="0.5"/>
+    <rect x="14.5" y="9"    width="3" height="3" rx="0.5"/>
+    <rect x="20"   y="9"    width="3" height="3" rx="0.5"/>
+    <rect x="9"    y="14.5" width="3" height="3" rx="0.5"/>
+    <rect x="14.5" y="14.5" width="3" height="3" rx="0.5"/>
+    <rect x="20"   y="14.5" width="3" height="3" rx="0.5"/>
+    <rect x="9"    y="20"   width="3" height="3" rx="0.5"/>
+    <rect x="14.5" y="20"   width="3" height="3" rx="0.5"/>
+    <rect x="20"   y="20"   width="3" height="3" rx="0.5"/>
+  </g>
 </svg>

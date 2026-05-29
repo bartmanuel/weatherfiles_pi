@@ -13,7 +13,6 @@
 #include "wxWTranslateCatalog.h"
 #include "tpicons.h"
 #include "wf_prefs_dialog.h"
-#include "wf_models_panel.h"
 #include "wf_download_dialog.h"
 #include "wf_multi_slice_dialog.h"
 
@@ -63,7 +62,6 @@ weatherfiles_pi::weatherfiles_pi(void *ppimgr)
     m_parent_window = nullptr;
     m_pTPConfig = nullptr;
     m_weatherfiles_button_id = -1;
-    m_weatherfiles_multi_button_id = -1;
     m_last_vp.bValid = false;
     m_ptpicons = new tpicons();   // loads the toolbar/plugin icons
 }
@@ -86,24 +84,11 @@ int weatherfiles_pi::Init(void)
     m_weatherfiles_button_id = InsertPlugInToolSVG(
         _("WeatherFiles"), m_ptpicons->m_s_weatherfiles_grey_pi,
         m_ptpicons->m_s_weatherfiles_pi, m_ptpicons->m_s_weatherfiles_toggled_pi,
-        wxITEM_CHECK, _("WeatherFiles: browse models"), wxS(""), NULL,
-        weatherfiles_POSITION, 0, this);
-    // Second toolbar tool: area-first multi-slice downloader. Same icons for
-    // now (tooltips disambiguate); replace with a distinct SVG when one
-    // exists.
-    m_weatherfiles_multi_button_id = InsertPlugInToolSVG(
-        _("WeatherFiles slice"), m_ptpicons->m_s_weatherfiles_grey_pi,
-        m_ptpicons->m_s_weatherfiles_pi, m_ptpicons->m_s_weatherfiles_toggled_pi,
         wxITEM_CHECK, _("WeatherFiles: area-first multi-slice download"),
         wxS(""), NULL, weatherfiles_POSITION, 0, this);
 #else
     m_weatherfiles_button_id = InsertPlugInTool(
         _("WeatherFiles"), &m_ptpicons->m_bm_weatherfiles_grey_pi,
-        &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK,
-        _("WeatherFiles: browse models"), wxS(""), NULL, weatherfiles_POSITION,
-        0, this);
-    m_weatherfiles_multi_button_id = InsertPlugInTool(
-        _("WeatherFiles slice"), &m_ptpicons->m_bm_weatherfiles_grey_pi,
         &m_ptpicons->m_bm_weatherfiles_pi, wxITEM_CHECK,
         _("WeatherFiles: area-first multi-slice download"), wxS(""), NULL,
         weatherfiles_POSITION, 0, this);
@@ -124,6 +109,9 @@ bool weatherfiles_pi::DeInit(void)
         m_multi_dialog->Destroy();
         m_multi_dialog = nullptr;
     }
+    // Release any process-wide HTTP-client state acquired by WfApi during
+    // the plugin's lifetime (e.g. libcurl's global init on macOS/Linux).
+    WfApi::GlobalCleanup();
     return true;
 }
 
@@ -143,7 +131,7 @@ wxString weatherfiles_pi::GetCommonName()       { return _T(PLUGIN_COMMON_NAME);
 wxString weatherfiles_pi::GetShortDescription() { return _(PLUGIN_SHORT_DESCRIPTION); }
 wxString weatherfiles_pi::GetLongDescription()  { return _(PLUGIN_LONG_DESCRIPTION); }
 
-int weatherfiles_pi::GetToolbarToolCount(void) { return 2; }
+int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
 
 bool weatherfiles_pi::RenderOverlayMultiCanvas(wxDC& dc, PlugIn_ViewPort* vp,
                                                int canvas_ix, int priority)
@@ -293,8 +281,7 @@ bool weatherfiles_pi::MouseEventHook(wxMouseEvent& event)
 void weatherfiles_pi::OnToolbarToolCallback(int id)
 {
     // First run with no token yet: take the user straight to the token-entry
-    // (Preferences) dialog rather than an empty UI. If they don't set one,
-    // stop here.
+    // (Preferences) dialog. If they don't set one, stop here.
     if (m_token.IsEmpty()) {
         ShowPreferencesDialog(m_parent_window);
         if (m_token.IsEmpty()) {
@@ -313,22 +300,15 @@ void weatherfiles_pi::OnToolbarToolCallback(int id)
         view.valid = true;
     }
 
-    if (id == m_weatherfiles_multi_button_id) {
-        // Area-first multi-slice download (modeless).
-        if (m_multi_dialog) {
-            m_multi_dialog->Raise();
-        } else {
-            m_multi_dialog =
-                new WfMultiSliceDialog(m_parent_window, m_token, view, this);
-            m_multi_dialog->Show();
-        }
-        SetToolbarItemState(id, false);
-        return;
+    // Open the area-first multi-slice wizard (modeless). Re-pressing while
+    // it's open raises it to the front.
+    if (m_multi_dialog) {
+        m_multi_dialog->Raise();
+    } else {
+        m_multi_dialog =
+            new WfMultiSliceDialog(m_parent_window, m_token, view, this);
+        m_multi_dialog->Show();
     }
-
-    // Otherwise: model browser (single-model download).
-    WfModelsPanel dlg(m_parent_window, m_token, view, this);
-    dlg.ShowModal();
     SetToolbarItemState(id, false);
 }
 

@@ -1,14 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- WeatherFiles mark: white ring + 3x3 grid, transparent background.
-       Ring and squares share one colour; OpenCPN themes the monochrome glyph. -->
-  <circle cx="16" cy="16" r="14" fill="none" stroke="#ffffff" stroke-width="2"/>
-  <rect x="7"  y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="14" y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="21" y="7"  width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="7"  y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="14" y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="21" y="14" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="7"  y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="14" y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
-  <rect x="21" y="21" width="4" height="4" rx="0.5" fill="#ffffff"/>
+  <!-- ACTIVE / rollover state. We paint a rounded-square tile in the same
+       tone OpenCPN uses for the toolbar slot (matches what grib_pi /
+       dashboard_pi / wmm_pi do; required because Style::BuildPluginIcon in
+       OpenCPN gui/src/styles.cpp unconditionally composites every plugin
+       SVG onto a GREY2 backing). The tile is then visually invisible
+       against the toolbar; the white ring + 3x3 grid sit on top. -->
+  <rect x="0" y="0" width="32" height="32" fill="#2a2a2a"/>
+  <circle cx="16" cy="16" r="11" fill="none" stroke="#ffffff" stroke-width="1.6"/>
+  <g fill="#ffffff">
+    <rect x="9"    y="9"    width="3" height="3" rx="0.5"/>
+    <rect x="14.5" y="9"    width="3" height="3" rx="0.5"/>
+    <rect x="20"   y="9"    width="3" height="3" rx="0.5"/>
+    <rect x="9"    y="14.5" width="3" height="3" rx="0.5"/>
+    <rect x="14.5" y="14.5" width="3" height="3" rx="0.5"/>
+    <rect x="20"   y="14.5" width="3" height="3" rx="0.5"/>
+    <rect x="9"    y="20"   width="3" height="3" rx="0.5"/>
+    <rect x="14.5" y="20"   width="3" height="3" rx="0.5"/>
+    <rect x="20"   y="20"   width="3" height="3" rx="0.5"/>
+  </g>
 </svg>

@@ -104,8 +104,7 @@ private:
     wxWindow     *m_parent_window;
     wxFileConfig *m_pTPConfig;
     tpicons      *m_ptpicons;
-    int           m_weatherfiles_button_id;       // model browser
-    int           m_weatherfiles_multi_button_id; // area-first multi-slice
+    int           m_weatherfiles_button_id;       // area-first multi-slice
     PlugIn_ViewPort m_last_vp;   // most recent chart view (bValid until set)
 
     // On-chart area-pick state.

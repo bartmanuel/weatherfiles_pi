@@ -11,20 +11,40 @@
 #include <vector>
 
 class wxStaticText;
+class wxStaticBox;
 class wxGauge;
 class wxButton;
 class wxScrolledWindow;
+class wxTextCtrl;
+class wxCheckBox;
+class wxChoice;
+class wxSizer;
+class wxPanel;
 
-// One model in a queue download: the prebuilt /v1/grib query string, the file
-// to write, and the display info shown in the progress + summary lists.
-// `category` ("atmosphere"|"wave"|"current") determines which file(s) get
-// auto-handed to grib_pi at the end (the first atmosphere + the wave + the
-// current that succeeded).
+// One model in a queue download: the prebuilt /v1/grib query string, the
+// file to write, and the display info shown in the progress + summary
+// lists. `category` ("atmosphere"|"wave"|"current") drives the post-download
+// per-category picker (radio buttons if multiple in a category, single
+// checkbox if just one).
+//
+// The structured fields (model_id, params, bbox, time_window_h, time_step_h,
+// spatial_factor) carry the original request shape so the post-download
+// "Save as set" flow can POST /v1/slices without parsing the query string
+// back out. They're populated for area-wizard downloads only; the slice
+// re-download path (start screen) leaves them empty and disables saving.
 struct WfDownloadJob {
   wxString label;
   wxString category;
   wxString query;
   wxString out_path;
+
+  // For "Save as set" (optional; empty for slice-replay jobs).
+  wxString model_id;
+  std::vector<wxString> params;
+  wxString bbox;                  // "w,e,s,n" - matches /v1/slices schema
+  int time_window_h = 0;
+  int time_step_h = 0;
+  int spatial_factor = 0;         // 0 == omit (server default = 1)
 };
 
 struct WfDownloadResult {
@@ -57,8 +77,15 @@ class WfDownloadProgress : public wxDialog {
                      const wxString& query, const wxString& out_path);
 
   // Queue constructor: N jobs run serially in arrival order.
+  //
+  // `existing_tags` is the user's currently-known tag set (for collision
+  // detection in the "Save as set" input). `can_save_as_set` toggles the
+  // whole Save section - false for slice-replay flows (start screen), true
+  // for area-wizard downloads where the result is genuinely new.
   WfDownloadProgress(wxWindow* parent, const wxString& token,
-                     std::vector<WfDownloadJob> jobs);
+                     std::vector<WfDownloadJob> jobs,
+                     std::vector<wxString> existing_tags = {},
+                     bool can_save_as_set = false);
   ~WfDownloadProgress();
 
   const wxString& Error() const { return m_error; }
@@ -68,24 +95,70 @@ class WfDownloadProgress : public wxDialog {
  private:
   void BuildUi(bool queue_mode);
   void OnTimer(wxTimerEvent& evt);
-  void OnCancel(wxCommandEvent& evt);
+  void OnCancel(wxCommandEvent& evt);   // Cancel during download / Close after
   void OnClose(wxCloseEvent& evt);
   void OnOpenFolder(wxCommandEvent& evt);
-  void OnReopenViewer(wxCommandEvent& evt);
+  void OnSetNameChanged(wxCommandEvent& evt);
+  void OnSavePressed(wxCommandEvent& evt);   // explicit Save button
+  void OnLoadSelected(wxCommandEvent& evt);
   void StartWorker(const wxString& token);
   void RenderProgress();         // per-tick progress text/gauge
   void RenderQueueComplete();    // swap to summary view
-  void HandoffToGribViewer();    // up to 3 SendPluginMessage calls
+  void BuildSavePanel(wxSizer* host);
+  void BuildLoaderPanel(wxSizer* host);
+  void ValidateSetName();        // recolour input + toggle Close label
+  void RefreshLoadButtonEnabled();
+  bool PerformSaveSlices();      // POSTs /v1/slices per job - sync
+  void LoadSelectedInViewer();   // concat + GRIB_APPLY_JSON_CONFIG
   void Finish();                 // join worker + EndModal based on result
 
   wxStaticText* m_status = nullptr;
   wxGauge* m_gauge = nullptr;
-  wxButton* m_cancelBtn = nullptr;
-  wxButton* m_openFolderBtn = nullptr;  // queue mode, post-completion
-  wxButton* m_reopenViewerBtn = nullptr;
-  wxScrolledWindow* m_completedPane = nullptr;  // queue mode
+  wxButton* m_cancelBtn = nullptr;        // Cancel during, Close after
+  wxButton* m_openFolderBtn = nullptr;
+  wxScrolledWindow* m_completedPane = nullptr;
+  wxStaticBox* m_listBox = nullptr;       // labeled box around the list
+  wxStaticText* m_savedToText = nullptr;  // bottom-left of the list box
   wxTimer m_timer;
   wxStopWatch m_watch;
+
+  // Top-level vertical sizer + insertion host for post-completion content.
+  // RenderQueueComplete adds the save + loader panels to m_postCompleteHost
+  // (an empty vertical sizer reserved in BuildUi between the file list and
+  // the footer button row).
+  wxSizer* m_topSizer = nullptr;
+  wxSizer* m_postCompleteHost = nullptr;
+
+  // Post-completion UI - built once in RenderQueueComplete().
+  wxPanel* m_savePanel = nullptr;
+  wxTextCtrl* m_saveInput = nullptr;
+  wxButton* m_saveBtn = nullptr;             // explicit Save action
+  wxStaticText* m_saveHint = nullptr;        // validation feedback
+  wxPanel* m_loaderPanel = nullptr;
+  wxButton* m_loadBtn = nullptr;
+  wxStaticText* m_loaderStatus = nullptr;    // "Loaded into GRIB viewer." etc.
+
+  // Per-category picker state, built from m_results after completion.
+  // results.size() == 1 -> single default-ON checkbox.
+  // results.size()  > 1 -> wxChoice dropdown; item 0 is "--- none ---" (the
+  //                       default), items 1..N map to results[sel-1].
+  struct LoaderEntry {
+    wxString category;
+    std::vector<const WfDownloadResult*> results;
+    wxCheckBox* check = nullptr;
+    wxChoice* choice = nullptr;
+  };
+  std::vector<LoaderEntry> m_loaderEntries;
+
+  // Tag collision check + dynamic Close label.
+  std::vector<wxString> m_existingTags;     // normalised: lower + trimmed
+  bool m_canSaveAsSet = false;
+  wxString m_currentTag;                    // cleaned (lower + trimmed)
+  bool m_currentTagValid = false;
+
+  // Stashed API token - the constructor receives it for the download worker;
+  // PerformSaveSlices needs it again to POST /v1/slices for each job.
+  wxString m_token;
 
   std::thread m_worker;
   std::atomic<long> m_bytes{0};

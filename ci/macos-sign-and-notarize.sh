@@ -68,7 +68,7 @@ security import "$P12" -k "$KEYCHAIN" -P "$MACOS_CERT_PASSWORD" \
   -f pkcs12 \
   -T /usr/bin/codesign
 security set-key-partition-list -S apple-tool:,apple:,codesign: \
-  -s -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
+  -s -k "$KEYCHAIN_PWD" "$KEYCHAIN"
 # Make the temp keychain user-visible so codesign can find the identity.
 security list-keychains -d user -s "$KEYCHAIN" \
   $(security list-keychains -d user | sed s/\"//g)
@@ -76,12 +76,33 @@ rm -f "$P12"
 
 trap 'security delete-keychain "$KEYCHAIN" 2>/dev/null || true' EXIT
 
+echo "=== All certs in the temp keychain ==="
+security find-certificate -a -p "$KEYCHAIN" \
+  | openssl x509 -noout -subject 2>/dev/null || true
+echo "=== All identities (any policy) ==="
+security find-identity -v "$KEYCHAIN" || true
+echo "=== Code-signing identities ==="
+security find-identity -v -p codesigning "$KEYCHAIN" || true
+
+# Match the Developer ID Application cert. Tries the specific name first,
+# then falls back to any code-signing identity if the cert happens to be
+# named differently.
 CODESIGN_ID=$(security find-identity -v -p codesigning "$KEYCHAIN" \
   | grep -m 1 "Developer ID Application" \
-  | awk -F'"' '{print $2}')
+  | awk -F'"' '{print $2}' || true)
 if [[ -z "$CODESIGN_ID" ]]; then
-  echo "ERROR: no Developer ID Application identity in the imported keychain"
-  security find-identity -v -p codesigning "$KEYCHAIN" || true
+  # Try plain "Developer ID" in case Apple renamed it in the .p12 export.
+  CODESIGN_ID=$(security find-identity -v -p codesigning "$KEYCHAIN" \
+    | grep -m 1 "Developer ID" \
+    | awk -F'"' '{print $2}' || true)
+fi
+if [[ -z "$CODESIGN_ID" ]]; then
+  echo "ERROR: no Developer ID Application identity found."
+  echo "Check that the cert exported to MACOS_CERT_P12_B64 is a"
+  echo "  'Developer ID Application' cert (NOT 'Apple Development',"
+  echo "  'Apple Distribution', 'Mac Installer', etc.)."
+  echo "Re-create at https://developer.apple.com/account/resources/certificates/add"
+  echo "  -> Software -> Developer ID Application."
   exit 1
 fi
 echo "Signing identity: $CODESIGN_ID"

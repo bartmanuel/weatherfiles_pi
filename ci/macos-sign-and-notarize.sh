@@ -96,6 +96,22 @@ for url in \
   rm -f "$cer"
 done
 
+# Wait for Apple's TSA to be reachable. Tag-build of v0.1.0.0-alpha1
+# died with `errSecInternalComponent` after the "unable to build chain
+# to self-signed root" warning — almost always a transient TSA outage
+# rather than a missing chain (`find-identity -v` reported the leaf
+# valid). Probe Apple's timestamp endpoint before invoking codesign so
+# we either confirm reachability or fail fast with a clear log line
+# instead of mid-signing.
+echo "=== TSA reachability check ==="
+for tsa in http://timestamp.apple.com/ts01 http://timestamp.apple.com ; do
+  if curl -sf --max-time 10 -o /dev/null "$tsa"; then
+    echo "  $tsa: ok"
+  else
+    echo "  $tsa: unreachable (status $?)"
+  fi
+done
+
 echo "=== All certs in the temp keychain ==="
 security find-certificate -a -p "$KEYCHAIN" \
   | openssl x509 -noout -subject 2>/dev/null || true
@@ -149,9 +165,21 @@ while IFS= read -r dylib; do
   # --options runtime is required for Apple to notarize.
   # --timestamp pulls a secure timestamp from Apple's TSA so the signature
   # is verifiable forever (without it, sigs expire when the cert does).
-  codesign --deep --force --options runtime \
-    --sign "$CODESIGN_ID" --timestamp \
-    "$dylib"
+  # Retry up to 3 times with backoff — the TSA call occasionally returns
+  # errSecInternalComponent on transient network blips on CircleCI's
+  # macOS executor, and re-running normally succeeds.
+  attempt=0
+  until codesign --deep --force --options runtime \
+        --sign "$CODESIGN_ID" --timestamp \
+        "$dylib"; do
+    attempt=$((attempt + 1))
+    if [[ "$attempt" -ge 3 ]]; then
+      echo "ERROR: codesign failed 3× on $dylib"
+      exit 1
+    fi
+    echo "codesign attempt $attempt failed, retrying in $((attempt * 10))s..."
+    sleep $((attempt * 10))
+  done
   codesign --verify --verbose=2 "$dylib"
   DYLIB_COUNT=$((DYLIB_COUNT + 1))
 done < <(find "$WORK" -name '*.dylib')

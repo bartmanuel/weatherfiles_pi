@@ -801,6 +801,12 @@ void WfMultiSliceDialog::PopulateModelsPage() {
       wxFont cf = r->coverage_text->GetFont();
       cf.MakeBold();
       r->coverage_text->SetFont(cf);
+      // Reserve a fixed slot wide enough for the widest state ("(outside)")
+      // so the checkbox column lines up across rows regardless of which
+      // state each row ends up in.
+      int tw = 0, th = 0;
+      r->coverage_text->GetTextExtent(_("(outside)"), &tw, &th);
+      r->coverage_text->SetMinSize(wxSize(tw + 4, -1));
       row->Add(r->coverage_text, 0,
                wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
 

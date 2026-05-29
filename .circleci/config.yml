@@ -4,11 +4,13 @@ version: 2.1
 parameters:
     run_workflow_deploy:
         type: boolean
-        # Build-only until Cloudsmith publishing is set up (deferred operator
-        # task: CLOUDSMITH_API_KEY + Apple signing). Every `deploy-code` step is
-        # gated on this, so `false` skips all upload steps and CI just compiles.
-        # Flip back to `true` once the package repo + signing creds exist.
-        default: false
+        # Cloudsmith publishing is wired (2026-05-29) to bartmanuel-fgsm/weatherfiles-alpha.
+        # Requires CLOUDSMITH_API_KEY in the CircleCI project env vars; the
+        # orb's `ensure-api-key` step fails the job if it's unset. Override
+        # the destination repo per-channel via CLOUDSMITH_ALPHA_REPO /
+        # CLOUDSMITH_BETA_REPO / CLOUDSMITH_PROD_REPO env vars (we currently
+        # redirect BETA + PROD to the alpha repo since only that one exists).
+        default: true
 
 std-filters: &std-filters
     filters:

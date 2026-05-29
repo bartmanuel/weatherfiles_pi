@@ -29,12 +29,17 @@ fi
 set -x
 
 # Sanity-print env var fingerprints (length only, never the values) so we
-# can tell that all five made it through.
+# can tell that all five made it through. Bash forbids `${#VAR:-default}`
+# (length + default in one expr); use a temp var instead.
+_pwd="${MACOS_CERT_PASSWORD:-}"
+_aid="${APPLE_ID:-}"
+_tid="${APPLE_TEAM_ID:-}"
+_apw="${APPLE_APP_PASSWORD:-}"
 echo "Cert b64 length: ${#MACOS_CERT_P12_B64}"
-echo "Cert pwd  length: ${#MACOS_CERT_PASSWORD:-0}"
-echo "Apple ID  length: ${#APPLE_ID:-0}"
-echo "Team ID   length: ${#APPLE_TEAM_ID:-0}"
-echo "App pwd   length: ${#APPLE_APP_PASSWORD:-0}"
+echo "Cert pwd length: ${#_pwd}"
+echo "Apple ID length: ${#_aid}"
+echo "Team ID  length: ${#_tid}"
+echo "App pwd  length: ${#_apw}"
 
 : "${MACOS_CERT_PASSWORD:?need MACOS_CERT_PASSWORD}"
 : "${APPLE_ID:?need APPLE_ID}"

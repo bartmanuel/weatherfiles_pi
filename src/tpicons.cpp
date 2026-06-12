@@ -22,21 +22,23 @@
  ***************************************************************************
  */
 
+#include <cstdint>
+
 #include <wx/wxprec.h>
 
 #ifndef WX_PRECOMP
 #include <wx/wx.h>
 #endif
 
-#include "weatherfiles_pi.h"
-#include "tpicons.h"
-#include "ocpn_plugin.h"
-
 #include <wx/mstream.h>
 #include <wx/filename.h>
 
 #include <wx/stdpaths.h>
 
+
+#include "weatherfiles_pi.h"
+#include "tpicons.h"
+#include "ocpn_plugin.h"
 
 extern wxString *g_SData_Locn;
 extern wxString *g_pHome_locn;
@@ -98,12 +100,12 @@ void tpicons::initialize_images(void)
     m_bm_weatherfiles_toggled_pi = LoadSVG( fn.GetFullPath() );
 #else
     fn.SetFullName(wxT("weatherfiles.png"));
-    m_p_bm_weatherfiles_pi = new wxBitmap( fn.GetFullPath(), wxBITMAP_TYPE_PNG );
-    if(!m_p_bm_weatherfiles_pi->IsOk())  m_failedBitmapLoad = true;
+    m_bm_weatherfiles_pi = wxBitmap( fn.GetFullPath(), wxBITMAP_TYPE_PNG );
+    if(!m_bm_weatherfiles_pi.IsOk())  m_failedBitmapLoad = true;
 #endif
 
     if(m_failedBitmapLoad) {
-        int ret = OCPNMessageBox_PlugIn( NULL, _("Failed to load all weatherfiles_pi icons, check OCPN log for details"), _("OpenCPN Alert"), wxOK );
+        OCPNMessageBox_PlugIn( NULL, _("Failed to load all weatherfiles_pi icons, check OCPN log for details"), _("OpenCPN Alert"), wxOK );
     } else {
         CreateSchemeIcons();
         ScaleIcons();

@@ -2,6 +2,11 @@
 
 #include "wf_download_progress.h"
 
+#include <cstdint>
+#include <fstream>
+#include <map>
+
+
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
@@ -18,8 +23,6 @@
 #include <wx/textctrl.h>
 #include <wx/utils.h>  // wxLaunchDefaultApplication, wxBusyCursor
 
-#include <fstream>
-#include <map>
 
 #include "ocpn_plugin.h"  // SendPluginMessage
 #include "wf_api.h"

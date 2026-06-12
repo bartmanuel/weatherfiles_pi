@@ -11,16 +11,14 @@
 #ifndef _WEATHERFILESPI_H_
 #define _WEATHERFILESPI_H_
 
-#include "wxWTranslateCatalog.h"
-
+#include <functional>
 #include <cstdint>
-#include "ocpn_plugin.h"
 
 #include <wx/string.h>
 #include <wx/fileconf.h>
 #include <wx/gdicmn.h>   // wxPoint
 
-#include <functional>
+#include "ocpn_plugin.h"
 
 #include "globals.h"
 #include "wf_api.h"      // WfModel, WfBBox

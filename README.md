@@ -166,3 +166,9 @@ cmake/                FE2 CMake helpers (mostly upstream from testplugin_pi)
 
 GPL-3.0 (inherited from the OpenCPN plugin template; required by the
 OpenCPN catalog). See [`LICENSE`](LICENSE).
+
+## Package hosting
+
+[![OSS hosting by Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat-square)](https://cloudsmith.com)
+
+Package repository hosting is graciously provided by [Cloudsmith](https://cloudsmith.com).

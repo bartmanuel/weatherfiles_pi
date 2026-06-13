@@ -67,7 +67,7 @@ set(TITLE_NAME "weatherfiles")
 set(PACKAGE_CONTACT "Bart Manuel")
 set(PACKAGE "weatherfiles")
 set(SHORT_DESCRIPTION
-    "Browse WeatherFiles models, slice an area, and download GRIBs into OpenCPN"
+    "Browse WeatherFiles models, slice an area, download GRIBs into OpenCPN"
 )
 set(LONG_DESCRIPTION
     "WeatherFiles plugin for OpenCPN: browse 27+ European weather models, pick an area on the chart, and download sliced GRIB2 files that open directly in the built-in GRIB display. Uses the WeatherFiles public API (api.weatherfiles.com/v1) with a personal access token. See developers.weatherfiles.com."

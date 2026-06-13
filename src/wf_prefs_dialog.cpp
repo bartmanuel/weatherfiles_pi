@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Bart Manuel
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // WeatherFiles preferences dialog. See wf_prefs_dialog.h.
 //
 // NOTE (build): wxWidgets 3.2 GUI code not compiled in this environment; the

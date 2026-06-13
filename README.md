@@ -122,27 +122,28 @@ every distro; for now match the tarball to your OS.
 
 ## Building from source
 
-Standard OpenCPN FrontEnd-2 (FE2) CMake build. Quickest path to a
-Plugin-Manager-importable package:
+The plugin uses the OpenCPN [shipdriver][shipdriver] CMake template. The
+quickest path to a Plugin-Manager-importable tarball:
 
 ```sh
-git clone --recurse-submodules https://github.com/bartmanuel/weatherfiles_pi.git
+git clone https://github.com/bartmanuel/weatherfiles_pi.git
 cd weatherfiles_pi
+git submodule update --init opencpn-libs
 
-# Native build on macOS (Apple Silicon or Intel)
-bash ci/build-macos-local.sh         # one-shot; needs --setup the first time
-
-# Linux (any distro) via Docker — produces the matching distro/arch tarball
-WF_LINUX_IMAGE=ubuntu:22.04 bash ci/build-linux-local.sh
-WF_LINUX_IMAGE=debian:bookworm bash ci/build-linux-local.sh
-
-# Windows (MSVC, in CI only for now)
-# See .circleci/config.yml `build-msvc-wx32-2022` job.
+mkdir build && cd build
+cmake ..
+make tarball          # importable tar.gz for the plugin installer
 ```
 
-Targets OpenCPN plugin API **1.18** with wxWidgets **3.2**. CircleCI runs
-all three desktop matrices on every push and publishes signed tarballs to
-the [Cloudsmith Alpha repo](https://cloudsmith.io/~bartmanuel-fgsm/repos/weatherfiles-alpha/).
+For a flatpak tarball, Android builds, and the full list of targets, see
+[`INSTALL.md`](INSTALL.md). Targets OpenCPN plugin API **1.18** with
+wxWidgets **3.2**.
+
+CI builds run on every push: desktop, Flatpak and Android matrices on
+CircleCI, and the Windows build on Appveyor. Signed tarballs are published
+to the [Cloudsmith Alpha repo](https://cloudsmith.io/~bartmanuel-fgsm/repos/weatherfiles-alpha/).
+
+[shipdriver]: https://opencpn-manuals.github.io/main/AlternativeWorkflow/index.html
 
 ## Project layout
 
@@ -155,17 +156,17 @@ include/              public headers
   wf_prefs_dialog.h     token-entry + validate
 src/                  implementation (same filenames as include/)
 data/                 SVG/PNG toolbar icons + license
+flatpak/              flatpak manifest
 ci/                   build + packaging helpers
-  build-macos-local.sh
-  build-linux-local.sh
-  make-importable-tarball.sh
-cmake/                FE2 CMake helpers (mostly upstream from testplugin_pi)
+cmake/                shipdriver CMake template helpers
 ```
 
 ## License
 
-GPL-3.0 (inherited from the OpenCPN plugin template; required by the
-OpenCPN catalog). See [`LICENSE`](LICENSE).
+Copyright (C) 2026 Bart Manuel.
+
+GPL-3.0-or-later. See [`LICENSE`](LICENSE). Source files carry
+[SPDX](https://spdx.dev) license identifiers.
 
 ## Package hosting
 

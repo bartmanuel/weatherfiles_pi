@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Bart Manuel
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef WF_MODELS_PANEL_H
 #define WF_MODELS_PANEL_H
 

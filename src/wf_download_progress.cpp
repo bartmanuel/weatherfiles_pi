@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Bart Manuel
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // WeatherFiles threaded download progress dialog. See wf_download_progress.h.
 
 #include "wf_download_progress.h"

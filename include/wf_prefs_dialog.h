@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Bart Manuel
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef WF_PREFS_DIALOG_H
 #define WF_PREFS_DIALOG_H
 

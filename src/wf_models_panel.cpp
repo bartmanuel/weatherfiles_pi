@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Bart Manuel
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // WeatherFiles model browser. See wf_models_panel.h.
 //
 // NOTE (build): wxWidgets 3.2 GUI code; the async WfApi callbacks fire on the

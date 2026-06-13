@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Bart Manuel
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // WeatherFiles area-first multi-slice download wizard. See header.
 
 #include "wf_multi_slice_dialog.h"

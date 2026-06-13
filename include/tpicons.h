@@ -26,6 +26,8 @@
 #ifndef TPICONS_H
 #define TPICONS_H 1
 
+#include <cstdint>
+
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
 #include <wx/wx.h>

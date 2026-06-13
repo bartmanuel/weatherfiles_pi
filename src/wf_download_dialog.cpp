@@ -2,6 +2,9 @@
 
 #include "wf_download_dialog.h"
 
+#include <algorithm>
+#include <cstdint>
+
 #include <wx/button.h>
 #include <wx/checklst.h>
 #include <wx/datetime.h>
@@ -16,7 +19,6 @@
 #include <wx/textctrl.h>
 #include <wx/utils.h>  // wxBusyCursor
 
-#include <algorithm>
 
 #include "ocpn_plugin.h"  // SendPluginMessage
 #include "wf_download_progress.h"

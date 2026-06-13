@@ -8,9 +8,9 @@
 #include "wx/wx.h"
 #endif
 
+#include "config.h"
+
 #include "weatherfiles_pi.h"
-#include "version.h"
-#include "wxWTranslateCatalog.h"
 #include "tpicons.h"
 #include "wf_prefs_dialog.h"
 #include "wf_download_dialog.h"
@@ -74,7 +74,7 @@ weatherfiles_pi::~weatherfiles_pi()
 
 int weatherfiles_pi::Init(void)
 {
-    AddLocaleCatalog(PLUGIN_CATALOG_NAME);
+    AddLocaleCatalog("opencpn-weatherfiles");
 
     m_parent_window = GetOCPNCanvasWindow();
     m_pTPConfig = GetOCPNConfigObject();
@@ -115,8 +115,13 @@ bool weatherfiles_pi::DeInit(void)
     return true;
 }
 
-int weatherfiles_pi::GetAPIVersionMajor()   { return OCPN_API_VERSION_MAJOR; }
-int weatherfiles_pi::GetAPIVersionMinor()   { return OCPN_API_VERSION_MINOR; }
+int weatherfiles_pi::GetAPIVersionMajor() { return atoi(API_VERSION); }
+int weatherfiles_pi::GetAPIVersionMinor() {
+  std::string v(API_VERSION);
+  size_t dotpos = v.find('.');
+  return atoi(v.substr(dotpos + 1).c_str());
+}
+
 int weatherfiles_pi::GetPlugInVersionMajor() { return PLUGIN_VERSION_MAJOR; }
 int weatherfiles_pi::GetPlugInVersionMinor() { return PLUGIN_VERSION_MINOR; }
 int weatherfiles_pi::GetPlugInVersionPatch() { return PLUGIN_VERSION_PATCH; }
@@ -127,9 +132,9 @@ wxBitmap *weatherfiles_pi::GetPlugInBitmap()
     return &m_ptpicons->m_bm_weatherfiles_pi;
 }
 
-wxString weatherfiles_pi::GetCommonName()       { return _T(PLUGIN_COMMON_NAME); }
-wxString weatherfiles_pi::GetShortDescription() { return _(PLUGIN_SHORT_DESCRIPTION); }
-wxString weatherfiles_pi::GetLongDescription()  { return _(PLUGIN_LONG_DESCRIPTION); }
+wxString weatherfiles_pi::GetCommonName()       { return PKG_NAME; }
+wxString weatherfiles_pi::GetShortDescription() { return _(PKG_SUMMARY); }
+wxString weatherfiles_pi::GetLongDescription()  { return _(PKG_DESCRIPTION); }
 
 int weatherfiles_pi::GetToolbarToolCount(void) { return 1; }
 
